@@ -1,13 +1,12 @@
 import React, { useState } from 'react';
 import Sidebar from './Sidebar';
 import Header from './Header';
+import { Outlet } from 'react-router-dom';
 
 
-interface AppLayoutProps {
-  children: React.ReactNode;
-}
 
-export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
+
+export const AppLayout: React.FC = () => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -45,7 +44,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
         />
 
         <main className="flex-1 overflow-x-hidden">
-          {children}
+          <Outlet />
         </main>
       </div>
     </div>

@@ -1,6 +1,7 @@
 import React, { Suspense, lazy } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AppLayout } from './components/layout/AppLayout';
+import Login from './pages/Login';
 
 // Lazy load pages for performance
 const Home = lazy(() => import('./pages/Home'));
@@ -17,7 +18,7 @@ const AccessibilityGuide = lazy(() => import('./pages/AccessibilityGuide'));
 const ContrastCheckerPage = lazy(() => import('./pages/ContrastCheckerPage'));
 const NotFound = lazy(() => import('./pages/NotFound'));
 
-interface AppLoaderProps {}
+interface AppLoaderProps { }
 
 const PageLoader: React.FC<AppLoaderProps> = () => (
   <div className="flex items-center justify-center min-h-[60vh]">
@@ -31,10 +32,11 @@ const PageLoader: React.FC<AppLoaderProps> = () => (
 function App() {
   return (
     <BrowserRouter>
-      <AppLayout>
-        <Suspense fallback={<PageLoader />}>
-          <Routes>
-            <Route path="/" element={<Home />} />
+      <Suspense fallback={<PageLoader />}>
+        <Routes>
+          <Route path="/" element={<Login />} />
+          <Route element={<AppLayout />}>
+            <Route path="/home" element={<Home />} />
             <Route path="/search" element={<SearchResults />} />
             <Route path="/sectors" element={<Sectors />} />
             <Route path="/sectors/:sectorId" element={<SectorDetail />} />
@@ -47,9 +49,9 @@ function App() {
             <Route path="/components" element={<ComponentsGuide />} />
             <Route path="/accessibility" element={<AccessibilityGuide />} />
             <Route path="*" element={<NotFound />} />
-          </Routes>
-        </Suspense>
-      </AppLayout>
+          </Route>
+        </Routes>
+      </Suspense>
     </BrowserRouter>
   );
 }
