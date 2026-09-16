@@ -1,7 +1,8 @@
 import React, { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Menu, Bell, Layers, Palette, BookOpen } from 'lucide-react';
+import { Search, Menu, Bell, Layers, Palette, BookOpen, LogOut, ShieldCheck } from 'lucide-react';
 import { debounce } from '../../utils/search';
+import { logout } from '../../Api/auth';
 
 interface HeaderProps {
   onMenuClick: () => void;
@@ -10,6 +11,7 @@ interface HeaderProps {
 
 export const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
   const [searchValue, setSearchValue] = useState('');
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const navigate = useNavigate();
 
   const handleSearch = useCallback(
@@ -29,6 +31,18 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && searchValue.trim()) {
       navigate(`/search?q=${encodeURIComponent(searchValue.trim())}`);
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      setIsLoggingOut(true);
+      await logout();
+    } catch (err) {
+      console.error('Logout error:', err);
+    } finally {
+      setIsLoggingOut(false);
+      navigate('/');
     }
   };
 
@@ -75,6 +89,7 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
           { label: 'Sectors', path: '/sectors', icon: <Layers size={15} /> },
           { label: 'Color Generator', path: '/color-generator', icon: <Palette size={15} /> },
           { label: 'Design Guide', path: '/components', icon: <BookOpen size={15} /> },
+          { label: 'Admin', path: '/admin', icon: <ShieldCheck size={15} className="text-[#38BDF8]" /> },
         ].map(item => (
           <button
             key={item.path}
@@ -94,9 +109,20 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
           <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-[#1683FF] rounded-full" aria-hidden="true" />
         </button>
 
-        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#1683FF] to-[#8B5CF6] flex items-center justify-center text-white text-xs font-bold cursor-pointer" aria-label="User menu">
+        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#1683FF] to-[#8B5CF6] flex items-center justify-center text-white text-xs font-bold" aria-label="User profile">
           A
         </div>
+
+        <button
+          onClick={handleLogout}
+          disabled={isLoggingOut}
+          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-[#EF4444] bg-[#EF4444]/10 hover:bg-[#EF4444]/20 border border-[#EF4444]/25 rounded-xl transition-all duration-150 cursor-pointer disabled:opacity-50"
+          aria-label="Logout"
+          title="Sign out of your session"
+        >
+          <LogOut size={15} />
+          <span className="hidden sm:inline">{isLoggingOut ? 'Logging out...' : 'Logout'}</span>
+        </button>
       </div>
     </header>
   );

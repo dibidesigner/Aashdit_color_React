@@ -1,6 +1,8 @@
 import React, { Suspense, lazy } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AppLayout } from './components/layout/AppLayout';
+import ProtectedRoute from './components/common/ProtectedRoute';
+import PublicRoute from './components/common/PublicRoute';
 import Login from './pages/Login';
 
 // Lazy load pages for performance
@@ -29,14 +31,19 @@ const PageLoader: React.FC<AppLoaderProps> = () => (
   </div>
 );
 
+const AdminLayout = lazy(() => import('./Admin/Layout'));
+const AdminHome = lazy(() => import('./Admin/Home'));
+const AddSector = lazy(() => import('./Admin/AddSector'));
+
 function App() {
   return (
     <BrowserRouter>
       <Suspense fallback={<PageLoader />}>
         <Routes>
-          <Route path="/" element={<Login />} />
-          <Route element={<AppLayout />}>
-            <Route path="/home" element={<Home />} />
+          {/* Public-only Route (Restricted for logged-in users, redirects logged in to /admin) */}
+          <Route element={<PublicRoute />}>
+            <Route path="/" element={<Home />} />
+            <Route path="/login" element={<Login />} />
             <Route path="/search" element={<SearchResults />} />
             <Route path="/sectors" element={<Sectors />} />
             <Route path="/sectors/:sectorId" element={<SectorDetail />} />
@@ -48,8 +55,17 @@ function App() {
             <Route path="/typography" element={<TypographyGuide />} />
             <Route path="/components" element={<ComponentsGuide />} />
             <Route path="/accessibility" element={<AccessibilityGuide />} />
-            <Route path="*" element={<NotFound />} />
           </Route>
+
+          {/* Protected Admin Routes (Only accessible when logged in) */}
+          <Route element={<ProtectedRoute />}>
+            <Route path="/admin" element={<AdminLayout />}>
+              <Route index element={<AdminHome />} />
+              <Route path="add-sector" element={<AddSector />} />
+            </Route>
+          </Route>
+
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </Suspense>
     </BrowserRouter>

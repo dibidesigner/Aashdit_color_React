@@ -13,15 +13,30 @@ const apiClient = axios.create({
     },
 });
 
-// Keep access token in memory
-let accessToken: string | null = null;
+// Keep access token in memory initialized from storage
+let accessToken: string | null = localStorage.getItem("AuthToken");
 
-export const setAccessToken = (token: string | null) => {
+export const setAccessToken = (token: string | null, RefreshToken: string | null) => {
+    if (token) {
+        localStorage.setItem("AuthToken", token);
+    } else {
+        localStorage.removeItem("AuthToken");
+    }
+    if (RefreshToken) {
+        localStorage.setItem("RefreshToken", RefreshToken);
+    } else {
+        localStorage.removeItem("RefreshToken");
+    }
     accessToken = token;
 };
 
 export const getAccessToken = () => {
-    return accessToken;
+    return accessToken || localStorage.getItem("AuthToken");
+};
+
+export const isAuthenticated = (): boolean => {
+    const token = localStorage.getItem("AuthToken") || accessToken;
+    return Boolean(token && token !== 'null' && token !== 'undefined');
 };
 
 // Request interceptor
@@ -70,14 +85,14 @@ apiClient.interceptors.response.use(
 
         // Don't refresh the refresh endpoint itself
         if (originalRequest.url?.includes('/auth/refresh/')) {
-            setAccessToken(null);
+            setAccessToken(null, null);
 
             return Promise.reject(error);
         }
 
         // Don't retry the same request again
         if (originalRequest._retry) {
-            setAccessToken(null);
+            setAccessToken(null, null);
 
             return Promise.reject(error);
         }
@@ -113,7 +128,7 @@ apiClient.interceptors.response.use(
 
             const newAccessToken = response.data.access;
 
-            setAccessToken(newAccessToken);
+            setAccessToken(newAccessToken, response.data.refresh);
 
             onRefreshSuccess(newAccessToken);
 
@@ -124,7 +139,7 @@ apiClient.interceptors.response.use(
             return apiClient(originalRequest);
 
         } catch (refreshError) {
-            setAccessToken(null);
+            setAccessToken(null, null);
 
             onRefreshFailed();
 
