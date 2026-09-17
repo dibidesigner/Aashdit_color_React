@@ -13,20 +13,20 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
 
   return (
     <div className="min-h-screen bg-[#07111F] text-[#F4F7FB] flex flex-col font-sans selection:bg-[#1683FF] selection:text-white">
-      
+
       {/* Top Admin Header */}
-      <AdminHeader 
+      <AdminHeader
         onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
         isSidebarOpen={isSidebarOpen}
       />
 
       {/* Main Body with Sidebar + Content */}
       <div className="flex flex-1 relative">
-        
+
         {/* Sidebar Component */}
-        <AdminSidebar 
-          isOpen={isSidebarOpen} 
-          onClose={() => setIsSidebarOpen(false)} 
+        <AdminSidebar
+          isOpen={isSidebarOpen}
+          onClose={() => setIsSidebarOpen(false)}
           activeSection={activeSection}
           setActiveSection={setActiveSection}
         />

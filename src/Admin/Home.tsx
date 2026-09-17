@@ -14,7 +14,6 @@ import {
     CheckCircle2,
     XCircle,
     Mail,
-    Building2,
     Activity,
     ArrowUpRight,
 } from 'lucide-react';
@@ -27,7 +26,7 @@ export interface AdminUser {
     name: string;
     email: string;
     role: 'Super Admin' | 'Admin' | 'Editor' | 'Viewer';
-    sector: string;
+    mobile: string;
     status: 'Active' | 'Inactive' | 'Pending';
     avatarBg: string;
     createdAt: string;
@@ -40,8 +39,8 @@ const INITIAL_USERS: AdminUser[] = [
         name: 'Aashdit Dash',
         email: 'aashdit@designatlas.io',
         role: 'Super Admin',
-        sector: 'Governance & Civic Tech',
         status: 'Active',
+        mobile: "9348053242",
         avatarBg: 'from-[#1683FF] to-[#38BDF8]',
         createdAt: '2026-01-15'
     },
@@ -50,8 +49,8 @@ const INITIAL_USERS: AdminUser[] = [
         name: 'Sarah Jenkins',
         email: 'sarah.j@fintechatlas.com',
         role: 'Admin',
-        sector: 'FinTech & Banking',
         status: 'Active',
+        mobile: "9348053242",
         avatarBg: 'from-[#8B5CF6] to-[#C084FC]',
         createdAt: '2026-02-01'
     },
@@ -60,8 +59,8 @@ const INITIAL_USERS: AdminUser[] = [
         name: 'Dr. Rahul Verma',
         email: 'rahul.verma@healthtech.org',
         role: 'Editor',
-        sector: 'Healthcare & Medical',
         status: 'Active',
+        mobile: "9348053242",
         avatarBg: 'from-[#10B981] to-[#34D399]',
         createdAt: '2026-02-14'
     },
@@ -70,8 +69,8 @@ const INITIAL_USERS: AdminUser[] = [
         name: 'Elena Rostova',
         email: 'elena@luxurydesign.fr',
         role: 'Editor',
-        sector: 'Luxury & Hospitality',
         status: 'Inactive',
+        mobile: "9348053242",
         avatarBg: 'from-[#F59E0B] to-[#FBBF24]',
         createdAt: '2026-03-02'
     },
@@ -80,8 +79,8 @@ const INITIAL_USERS: AdminUser[] = [
         name: 'Marcus Chen',
         email: 'marcus.c@cybersec.io',
         role: 'Viewer',
-        sector: 'Cybersecurity',
         status: 'Active',
+        mobile: "9348053242",
         avatarBg: 'from-[#EF4444] to-[#F87171]',
         createdAt: '2026-03-10'
     },
@@ -90,12 +89,14 @@ const INITIAL_USERS: AdminUser[] = [
         name: 'Ananya Sharma',
         email: 'ananya@eduportal.edu',
         role: 'Viewer',
-        sector: 'Education & EdTech',
         status: 'Pending',
+        mobile: "9348053242",
         avatarBg: 'from-[#0EA5E9] to-[#38BDF8]',
         createdAt: '2026-03-15'
     }
 ];
+
+
 
 export const AdminHome: React.FC = () => {
     const navigate = useNavigate();
@@ -114,14 +115,14 @@ export const AdminHome: React.FC = () => {
     const [formData, setFormData] = useState<{
         name: string;
         email: string;
+        mobile: string;
         role: 'Super Admin' | 'Admin' | 'Editor' | 'Viewer';
-        sector: string;
         status: 'Active' | 'Inactive' | 'Pending';
     }>({
         name: '',
         email: '',
         role: 'Editor',
-        sector: 'Governance & Civic Tech',
+        mobile: "9348053242",
         status: 'Active'
     });
 
@@ -143,7 +144,7 @@ export const AdminHome: React.FC = () => {
             name: '',
             email: '',
             role: 'Editor',
-            sector: sectors[0]?.name || 'Governance & Civic Tech',
+            mobile: "9348053242",
             status: 'Active'
         });
         setIsAddUserOpen(true);
@@ -155,7 +156,7 @@ export const AdminHome: React.FC = () => {
             name: user.name,
             email: user.email,
             role: user.role,
-            sector: user.sector,
+            mobile: user.mobile,
             status: user.status
         });
     };
@@ -180,8 +181,8 @@ export const AdminHome: React.FC = () => {
             id: `usr-${Date.now()}`,
             name: formData.name.trim(),
             email: formData.email.trim(),
+            mobile: formData.mobile,
             role: formData.role,
-            sector: formData.sector,
             status: formData.status,
             avatarBg: randomGradient,
             createdAt: new Date().toISOString().split('T')[0]
@@ -205,7 +206,6 @@ export const AdminHome: React.FC = () => {
             name: formData.name.trim(),
             email: formData.email.trim(),
             role: formData.role,
-            sector: formData.sector,
             status: formData.status
         } : u));
 
@@ -234,8 +234,8 @@ export const AdminHome: React.FC = () => {
     // Filtered Users
     const filteredUsers = userList.filter(user => {
         const matchesSearch = user.name.toLowerCase().includes(userSearch.toLowerCase()) ||
-            user.email.toLowerCase().includes(userSearch.toLowerCase()) ||
-            user.sector.toLowerCase().includes(userSearch.toLowerCase());
+            user.email.toLowerCase().includes(userSearch.toLowerCase())
+
         const matchesRole = roleFilter === 'All' || user.role === roleFilter;
         const matchesStatus = statusFilter === 'All' || user.status === statusFilter;
         return matchesSearch && matchesRole && matchesStatus;
@@ -269,12 +269,6 @@ export const AdminHome: React.FC = () => {
                 <div className="absolute right-0 top-0 translate-x-10 -translate-y-10 w-80 h-80 bg-[#1683FF]/10 rounded-full blur-3xl pointer-events-none" />
                 <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
                     <div>
-                        <div className="flex items-center gap-2 mb-2">
-                            <span className="px-3 py-1 rounded-full text-xs font-semibold bg-[#1683FF]/15 text-[#38BDF8] border border-[#38BDF8]/30 flex items-center gap-1.5">
-                                <Sparkles size={14} /> Admin Overview
-                            </span>
-                            <span className="text-xs text-[#64748B]">Updated Live</span>
-                        </div>
                         <h1 className="text-2xl md:text-3xl font-extrabold text-white tracking-tight">
                             Control Center & System Management
                         </h1>
@@ -497,13 +491,7 @@ export const AdminHome: React.FC = () => {
                                             </span>
                                         </td>
 
-                                        {/* Assigned Sector */}
-                                        <td className="py-3.5 px-4 text-[#94A3B8]">
-                                            <div className="flex items-center gap-1.5">
-                                                <Building2 size={13} className="text-[#1683FF]" />
-                                                <span>{user.sector}</span>
-                                            </div>
-                                        </td>
+
 
                                         {/* Status Pill */}
                                         <td className="py-3.5 px-4">
@@ -675,6 +663,19 @@ export const AdminHome: React.FC = () => {
 
                             {/* Email */}
                             <div>
+                                <label className="block text-[#94A3B8] font-semibold mb-1">Mobile No. *</label>
+                                <input
+                                    type="text"
+                                    required
+                                    value={formData.mobile}
+                                    onChange={(e) => setFormData({ ...formData, mobile: e.target.value })}
+                                    placeholder="1234567890"
+                                    className="w-full bg-[#07111F] text-[#F4F7FB] p-2.5 rounded-xl border border-[#20344A] focus:border-[#1683FF] focus:outline-none"
+                                />
+                            </div>
+
+                            {/* Email */}
+                            <div>
                                 <label className="block text-[#94A3B8] font-semibold mb-1">Email Address *</label>
                                 <input
                                     type="email"
@@ -717,19 +718,6 @@ export const AdminHome: React.FC = () => {
                                 </div>
                             </div>
 
-                            {/* Assigned Sector */}
-                            <div>
-                                <label className="block text-[#94A3B8] font-semibold mb-1">Assigned Sector Framework</label>
-                                <select
-                                    value={formData.sector}
-                                    onChange={(e) => setFormData({ ...formData, sector: e.target.value })}
-                                    className="w-full bg-[#07111F] text-[#F4F7FB] p-2.5 rounded-xl border border-[#20344A] focus:border-[#1683FF] focus:outline-none cursor-pointer"
-                                >
-                                    {sectors.map((s) => (
-                                        <option key={s.id} value={s.name}>{s.name}</option>
-                                    ))}
-                                </select>
-                            </div>
 
                             {/* Buttons */}
                             <div className="flex items-center justify-end gap-3 pt-3 border-t border-[#1C314A]">
@@ -834,19 +822,7 @@ export const AdminHome: React.FC = () => {
                                 </div>
                             </div>
 
-                            {/* Sector */}
-                            <div>
-                                <label className="block text-[#94A3B8] font-semibold mb-1">Assigned Sector</label>
-                                <select
-                                    value={formData.sector}
-                                    onChange={(e) => setFormData({ ...formData, sector: e.target.value })}
-                                    className="w-full bg-[#07111F] text-[#F4F7FB] p-2.5 rounded-xl border border-[#20344A] focus:border-[#1683FF] focus:outline-none cursor-pointer"
-                                >
-                                    {sectors.map((s) => (
-                                        <option key={s.id} value={s.name}>{s.name}</option>
-                                    ))}
-                                </select>
-                            </div>
+
 
                             {/* Buttons */}
                             <div className="flex items-center justify-end gap-3 pt-3 border-t border-[#1C314A]">

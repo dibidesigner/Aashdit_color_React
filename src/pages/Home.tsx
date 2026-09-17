@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Search, ArrowRight, Sparkles, Layers, Palette, Layout, Type, Grid, Shield } from 'lucide-react';
 import { PageContainer } from '../components/layout/PageContainer';
 import { SectorGrid } from '../components/sectors/SectorGrid';
@@ -406,21 +406,18 @@ export const Home: React.FC = () => {
       </section>
 
       {/* ===== FOOTER ===== */}
-      <footer className="py-10 border-t border-[#20344A]">
+      <footer className="py-5 border-t border-[#20344A]">
         <PageContainer>
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#1683FF] to-[#12B8C4] flex items-center justify-center">
-                <span className="text-white font-bold text-sm">D</span>
-              </div>
-              <div>
-                <span className="text-[#F4F7FB] font-bold text-sm">Aashdit Colors</span>
-                <p className="text-[#64748B] text-xs">UI/UX Design Reference Platform</p>
-              </div>
+              <p className="text-[#64748B] text-xs">UI/UX Design Reference Platform</p>
             </div>
             <p className="text-[#64748B] text-xs text-center">
               Better Interfaces · Brighter Societies · v1.0.0
             </p>
+            <Link to="https://aashdit.com" target="_blank" className="text-[#64748B] text-xs text-center">
+              © 2026 Aashdit Technologies LLP
+            </Link>
           </div>
         </PageContainer>
       </footer>

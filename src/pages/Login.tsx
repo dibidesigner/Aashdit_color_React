@@ -123,14 +123,14 @@ export default function Login() {
             {/* Header Bar */}
             <header className="relative z-10 w-full max-w-7xl mx-auto px-6 py-6 flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-[#1683FF] via-[#12B8C4] to-[#8B5CF6] p-[2px] shadow-lg shadow-[#1683FF]/20">
+                    <div className="w-10 h-10 rounded-xl">
                         <div className="w-full h-full bg-[#07111F] rounded-[10px] flex items-center justify-center">
-                            <Palette className="w-5 h-5 text-[#1683FF]" />
+                            <Palette className="w-6 h-6 text-[#1683FF]" />
                         </div>
                     </div>
-                    <div>
+                    <div onClick={() => navigate("/")}>
                         <span className="font-bold text-lg tracking-tight bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent">
-                            Design Atlas
+                            Aashdit Colors
                         </span>
                         <span className="hidden sm:inline-block ml-2 text-xs px-2 py-0.5 rounded-full bg-[#1683FF]/15 text-[#1683FF] border border-[#1683FF]/30 font-mono">
                             Color Theory v2.4
@@ -177,50 +177,10 @@ export default function Login() {
                             />
                             <div className="absolute inset-0 bg-gradient-to-t from-[#07111F] via-[#07111F]/40 to-transparent" />
 
-                            {/* Floating Swatches Overlay */}
-                            <div className="absolute bottom-4 left-4 right-4 p-3 rounded-xl bg-[#07111F]/80 backdrop-blur-md border border-[#20344A] flex items-center justify-between">
-                                <div className="flex items-center gap-2">
-                                    <div className="p-2 rounded-lg bg-[#1683FF]/20 text-[#1683FF]">
-                                        <Layers className="w-4 h-4" />
-                                    </div>
-                                    <div>
-                                        <p className="text-xs font-semibold text-white">{activeHarmony.name}</p>
-                                        <p className="text-[11px] text-[#64748B]">{activeHarmony.description}</p>
-                                    </div>
-                                </div>
 
-                                <div className="flex items-center gap-1.5 pl-2">
-                                    {activeHarmony.colors.map((hex, i) => (
-                                        <div
-                                            key={i}
-                                            className="w-7 h-7 rounded-lg shadow-sm border border-white/20 transition-transform hover:scale-110 flex items-center justify-center text-[9px] font-mono text-white/90 font-bold"
-                                            style={{ backgroundColor: hex }}
-                                            title={hex}
-                                        />
-                                    ))}
-                                </div>
-                            </div>
                         </div>
 
-                        {/* Harmony Selector Badges */}
-                        <div className="flex items-center gap-2 overflow-x-auto pb-1">
-                            <span className="text-xs text-[#64748B] flex items-center gap-1 font-medium pr-1">
-                                <Sliders className="w-3.5 h-3.5" /> Harmonies:
-                            </span>
-                            {COLOR_HARMONIES.map((h, idx) => (
-                                <button
-                                    key={h.type}
-                                    type="button"
-                                    onClick={() => setActiveHarmonyIndex(idx)}
-                                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${activeHarmonyIndex === idx
-                                        ? 'bg-[#1683FF] text-white shadow-lg shadow-[#1683FF]/30 font-semibold'
-                                        : 'bg-[#0B1626] text-[#94A3B8] hover:bg-[#101F31] hover:text-white border border-[#20344A]'
-                                        }`}
-                                >
-                                    {h.type}
-                                </button>
-                            ))}
-                        </div>
+
                     </div>
 
                     {/* Right Side: Sleek Glassmorphism Login Card */}

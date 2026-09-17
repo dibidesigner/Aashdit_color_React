@@ -8,8 +8,6 @@ import {
     Menu,
     X,
     ChevronDown,
-    Sparkles,
-    ExternalLink
 } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
 import { logout } from '../Api/auth';
@@ -30,6 +28,7 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({
 
     const Logout = async () => {
         await logout()
+        navigate("/")
     }
 
     const notifications = [
@@ -89,23 +88,6 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({
 
                 {/* Right Section: System Status + Notifications + Profile */}
                 <div className="flex items-center gap-3">
-
-                    {/* System Status Pill */}
-                    <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#102235] border border-[#1E3754]">
-                        <span className="w-2 h-2 rounded-full bg-[#10B981] animate-pulse" />
-                        <span className="text-xs text-[#94A3B8] font-medium">Operational</span>
-                    </div>
-
-                    {/* Quick Main Site Link */}
-                    <Link
-                        to="/home"
-                        className="hidden sm:flex items-center gap-1.5 text-xs text-[#94A3B8] hover:text-[#38BDF8] px-3 py-2 rounded-xl bg-[#101F31] border border-[#20344A] hover:border-[#1683FF]/40 transition-all duration-200"
-                    >
-                        <span>View Site</span>
-                        <ExternalLink size={14} />
-                    </Link>
-
-                    {/* Notifications Dropdown */}
                     <div className="relative">
                         <button
                             onClick={() => {
@@ -183,13 +165,7 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({
                                         <User size={14} />
                                         <span>Admin Profile</span>
                                     </button>
-                                    <button
-                                        onClick={() => { setShowProfileMenu(false); navigate('/home'); }}
-                                        className="w-full text-left px-4 py-2 text-xs text-[#94A3B8] hover:text-white hover:bg-[#13243B] flex items-center gap-2"
-                                    >
-                                        <Sparkles size={14} />
-                                        <span>Public Catalog</span>
-                                    </button>
+
                                 </div>
                                 <div className="pt-1 border-t border-[#1C314A]">
                                     <button

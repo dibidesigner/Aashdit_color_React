@@ -47,7 +47,7 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
   };
 
   return (
-    <header className="w-full sticky top-0 z-[200] h-16 bg-[#0B1626]/95 backdrop-blur-md border-b border-[#20344A] flex items-center px-4 lg:px-6 gap-4">
+    <header className="w-full sticky top-0 z-[200] h-12 bg-[#0B1626]/95 backdrop-blur-md border-b border-[#20344A] flex items-center px-4 lg:px-6 gap-4">
       {/* Mobile menu */}
       <button
         onClick={onMenuClick}
@@ -62,7 +62,7 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
         <div className="w-7 h-7 rounded-md bg-gradient-to-br from-[#1683FF] to-[#12B8C4] flex items-center justify-center">
           <span className="text-white font-bold text-xs">D</span>
         </div>
-        <span className="text-[#F4F7FB] font-bold text-sm">Aashdit Colors</span>
+        <span className="text-[#F4F7FB] font-bold text-sm" onClick={() => navigate("/")}>Aashdit Colors</span>
       </div>
 
       {/* Search - full width */}
