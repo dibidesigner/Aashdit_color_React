@@ -804,8 +804,8 @@ export default function AddSector() {
                                     </div>
 
                                     {/* ========================================================
-                      LIVE REAL-TIME FONT PREVIEW CARD WITH DUMMY TEXT & PARAGRAPH
-                     ======================================================== */}
+                                       LIVE REAL-TIME FONT PREVIEW CARD WITH DUMMY TEXT & PARAGRAPH
+                                                       ======================================================== */}
                                     <div className="p-5 md:p-6 rounded-2xl bg-[#07111F] border border-[#20344A] space-y-4 shadow-inner">
                                         <div className="flex items-center justify-between border-b border-[#1E334D] pb-3">
                                             <span className="text-xs font-bold text-[#C084FC] flex items-center gap-2">

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
     Users,
@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { sectors } from '../data/sectors';
 import { SectorCard } from '../components/sectors/SectorCard';
+import { saveUser, getUsers, updateUser, deleteUser } from './services/auth';
 
 // Interface for User model
 export interface AdminUser {
@@ -138,6 +139,42 @@ export const AdminHome: React.FC = () => {
         setTimeout(() => setToastMessage(null), 3500);
     };
 
+    // Fetch users from API
+    const fetchUserList = async () => {
+        try {
+            const res = await getUsers();
+            if (res && res.users) {
+                const gradients = [
+                    'from-[#1683FF] to-[#38BDF8]',
+                    'from-[#8B5CF6] to-[#C084FC]',
+                    'from-[#10B981] to-[#34D399]',
+                    'from-[#F59E0B] to-[#FBBF24]',
+                    'from-[#EC4899] to-[#F472B6]'
+                ];
+                const mappedUsers: AdminUser[] = res.users.map((u, idx) => {
+                    const fullName = `${u.first_name || ''} ${u.last_name || ''}`.trim() || u.username || u.email;
+                    return {
+                        id: String(u.id),
+                        name: fullName,
+                        email: u.email || u.username,
+                        role: 'Admin',
+                        mobile: '9348053242',
+                        status: 'Active',
+                        avatarBg: gradients[idx % gradients.length],
+                        createdAt: new Date().toISOString().split('T')[0]
+                    };
+                });
+                setUserList(mappedUsers);
+            }
+        } catch (error) {
+            console.error('Error fetching users from GET endpoint:', error);
+        }
+    };
+
+    useEffect(() => {
+        fetchUserList();
+    }, []);
+
     // User CRUD Handlers
     const handleOpenAddModal = () => {
         setFormData({
@@ -161,39 +198,42 @@ export const AdminHome: React.FC = () => {
         });
     };
 
-    const handleSaveAddUser = (e: React.FormEvent) => {
+    const handleSaveAddUser = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!formData.name.trim() || !formData.email.trim()) {
             showToast('Please enter both name and email.', 'error');
             return;
         }
 
-        const gradients = [
-            'from-[#1683FF] to-[#38BDF8]',
-            'from-[#8B5CF6] to-[#C084FC]',
-            'from-[#10B981] to-[#34D399]',
-            'from-[#F59E0B] to-[#FBBF24]',
-            'from-[#EC4899] to-[#F472B6]'
-        ];
-        const randomGradient = gradients[Math.floor(Math.random() * gradients.length)];
+        const nameParts = formData.name.trim().split(' ');
+        const first_name = nameParts[0] || '';
+        const last_name = nameParts.slice(1).join(' ') || '';
 
-        const newUser: AdminUser = {
-            id: `usr-${Date.now()}`,
-            name: formData.name.trim(),
-            email: formData.email.trim(),
-            mobile: formData.mobile,
-            role: formData.role,
-            status: formData.status,
-            avatarBg: randomGradient,
-            createdAt: new Date().toISOString().split('T')[0]
-        };
+        try {
+            const response = await saveUser({
+                username: formData.email.trim(),
+                email: formData.email.trim(),
+                mobileno: formData.mobile,
+                first_name: first_name,
+                last_name: last_name,
+                role: formData.role,
+                status: formData.status
+            });
 
-        setUserList([newUser, ...userList]);
-        setIsAddUserOpen(false);
-        showToast(`User "${newUser.name}" added successfully!`, 'success');
+            console.log("Response", response);
+
+            // Re-fetch users from API after adding new user
+            await fetchUserList();
+            setIsAddUserOpen(false);
+            showToast(`User "${formData.name.trim()}" added successfully!`, 'success');
+        } catch (error: any) {
+            console.error('Error saving user:', error);
+            const errorMessage = error?.response?.data?.message || error?.response?.data?.error || 'Failed to save user.';
+            showToast(errorMessage, 'error');
+        }
     };
 
-    const handleSaveEditUser = (e: React.FormEvent) => {
+    const handleSaveEditUser = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!editingUser) return;
         if (!formData.name.trim() || !formData.email.trim()) {
@@ -201,23 +241,44 @@ export const AdminHome: React.FC = () => {
             return;
         }
 
-        setUserList(userList.map(u => u.id === editingUser.id ? {
-            ...u,
-            name: formData.name.trim(),
-            email: formData.email.trim(),
-            role: formData.role,
-            status: formData.status
-        } : u));
+        const nameParts = formData.name.trim().split(' ');
+        const first_name = nameParts[0] || '';
+        const last_name = nameParts.slice(1).join(' ') || '';
 
-        setEditingUser(null);
-        showToast(`User "${formData.name}" updated successfully!`, 'success');
+        try {
+            await updateUser(editingUser.id, {
+                username: formData.email.trim(),
+                email: formData.email.trim(),
+                mobileno: formData.mobile,
+                first_name: first_name,
+                last_name: last_name,
+                role: formData.role,
+                status: formData.status
+            });
+
+            await fetchUserList();
+            setEditingUser(null);
+            showToast(`User "${formData.name}" updated successfully!`, 'success');
+        } catch (error: any) {
+            console.error('Error updating user:', error);
+            const errorMessage = error?.response?.data?.message || 'Failed to update user.';
+            showToast(errorMessage, 'error');
+        }
     };
 
-    const handleConfirmDelete = () => {
+    const handleConfirmDelete = async () => {
         if (!deletingUser) return;
-        setUserList(userList.filter(u => u.id !== deletingUser.id));
-        showToast(`User "${deletingUser.name}" has been deleted.`, 'info');
-        setDeletingUser(null);
+        try {
+            await deleteUser(deletingUser.id);
+            await fetchUserList();
+            showToast(`User "${deletingUser.name}" has been deleted.`, 'info');
+        } catch (error: any) {
+            console.error('Error deleting user:', error);
+            const errorMessage = error?.response?.data?.message || 'Failed to delete user.';
+            showToast(errorMessage, 'error');
+        } finally {
+            setDeletingUser(null);
+        }
     };
 
     const handleToggleUserStatus = (userId: string) => {
@@ -463,7 +524,7 @@ export const AdminHome: React.FC = () => {
                                         <td className="py-3.5 px-4">
                                             <div className="flex items-center gap-3">
                                                 <div className={`w-9 h-9 rounded-xl bg-gradient-to-tr ${user.avatarBg} flex items-center justify-center text-white font-bold text-xs shadow-md shrink-0`}>
-                                                    {user.name.split(' ').map(n => n[0]).join('').substring(0, 2)}
+                                                    {(user.name || 'U').split(' ').filter(Boolean).map(n => n[0]).join('').substring(0, 2).toUpperCase() || 'U'}
                                                 </div>
                                                 <div>
                                                     <p className="font-semibold text-white group-hover:text-[#38BDF8] transition-colors">
