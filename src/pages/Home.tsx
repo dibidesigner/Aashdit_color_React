@@ -1,6 +1,6 @@
-import React, { useState, useCallback } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { Search, ArrowRight, Sparkles, Layers, Palette, Layout, Type, Grid, Shield } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
+import { Search, ArrowRight, Sparkles, Layers, Palette, Layout, Type, Grid, Shield, Loader2 } from 'lucide-react';
 import { PageContainer } from '../components/layout/PageContainer';
 import { SectorGrid } from '../components/sectors/SectorGrid';
 import { ColorGenerator } from '../components/colors/ColorGenerator';
@@ -8,7 +8,8 @@ import { ColorScale } from '../components/colors/ColorScale';
 import { GeneratedCSS } from '../components/colors/GeneratedCSS';
 import { LiveUIPreview } from '../components/colors/LiveUIPreview';
 import { Button } from '../components/common/Button';
-import { sectors } from '../data/sectors';
+import { getSectors } from '../Admin/services/Sectors';
+import type { Sector } from '../types/sector';
 import type { GeneratedPalette } from '../types/color';
 import { generateColorScale, generateGrayScale } from '../utils/colorScale';
 
@@ -20,8 +21,6 @@ const defaultPalette: GeneratedPalette = {
   baseColors: { primary: '#1683FF', secondary: '#12B8C4', gray: '#64748B' },
   generatedAt: Date.now(),
 };
-
-const popularSectors = sectors.slice(0, 10);
 
 const designConcepts = [
   { icon: <Palette size={20} />, label: 'Color', path: '/color-theory', desc: 'Theory & Relationships' },
@@ -36,6 +35,32 @@ export const Home: React.FC = () => {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [generatedPalette, setGeneratedPalette] = useState<GeneratedPalette>(defaultPalette);
+  const [sectorsList, setSectorsList] = useState<Sector[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+
+  useEffect(() => {
+    const fetchSectors = async () => {
+      try {
+        setLoading(true);
+        const data = await getSectors();
+        let apiSectors: Sector[] = [];
+        if (Array.isArray(data)) {
+          apiSectors = data;
+        } else if (data && Array.isArray((data as any).sectors)) {
+          apiSectors = (data as any).sectors;
+        } else if (data && Array.isArray((data as any).data)) {
+          apiSectors = (data as any).data;
+        }
+        setSectorsList(apiSectors || []);
+      } catch (err) {
+        console.error("Error fetching sectors on Home page:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchSectors();
+  }, []);
 
   const handleSearch = useCallback((e: React.FormEvent) => {
     e.preventDefault();
@@ -47,6 +72,8 @@ export const Home: React.FC = () => {
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') handleSearch(e as unknown as React.FormEvent);
   };
+
+  const popularSectors = sectorsList.slice(0, 10);
 
   return (
     <div className="min-h-screen">
@@ -168,7 +195,13 @@ export const Home: React.FC = () => {
             </Button>
           </div>
 
-          <SectorGrid sectors={popularSectors} columns={5} />
+          {loading ? (
+            <div className="flex justify-center py-12">
+              <Loader2 className="animate-spin text-[#1683FF]" size={28} />
+            </div>
+          ) : (
+            <SectorGrid sectors={popularSectors} columns={5} />
+          )}
         </PageContainer>
       </section>
 
@@ -210,121 +243,90 @@ export const Home: React.FC = () => {
       </section>
 
       {/* ===== SAMPLE UI DESIGNS ===== */}
-      <section className="py-16 border-t border-[#20344A]">
-        <PageContainer>
-          <div className="mb-8">
-            <h2 className="text-[#F4F7FB] text-2xl font-bold mb-1">Sample UI Designs</h2>
-            <p className="text-[#64748B] text-sm">Real-world UI previews built with sector-specific design systems</p>
-          </div>
+      {sectorsList.length > 0 && (
+        <section className="py-16 border-t border-[#20344A]">
+          <PageContainer>
+            <div className="mb-8">
+              <h2 className="text-[#F4F7FB] text-2xl font-bold mb-1">Sample UI Designs</h2>
+              <p className="text-[#64748B] text-sm">Real-world UI previews built with sector-specific design systems</p>
+            </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {[
-              {
-                sector: 'government',
-                title: 'Government Dashboard',
-                desc: 'Official and trustworthy admin interface',
-                color: '#123B63',
-                accent: '#C9972B',
-                icon: '🏛️',
-              },
-              {
-                sector: 'healthcare',
-                title: 'Healthcare Portal',
-                desc: 'Clean patient management interface',
-                color: '#1677B7',
-                accent: '#159A9C',
-                icon: '🏥',
-              },
-              {
-                sector: 'education',
-                title: 'Education Platform',
-                desc: 'Student learning management system',
-                color: '#2457A6',
-                accent: '#F4B942',
-                icon: '🎓',
-              },
-              {
-                sector: 'finance',
-                title: 'Banking Dashboard',
-                desc: 'Secure and precise financial interface',
-                color: '#0F3460',
-                accent: '#16A07D',
-                icon: '🏦',
-              },
-            ].map(item => (
-              <div
-                key={item.sector}
-                className="group relative bg-[#101F31] border border-[#20344A] rounded-2xl overflow-hidden cursor-pointer hover:border-[#2D4A68] transition-all duration-250"
-                onClick={() => navigate(`/sectors/${item.sector}`)}
-                role="button"
-                tabIndex={0}
-                onKeyDown={e => e.key === 'Enter' && navigate(`/sectors/${item.sector}`)}
-                aria-label={`View ${item.title} design`}
-              >
-                {/* Preview area */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {sectorsList.slice(0, 4).map(item => (
                 <div
-                  className="h-48 p-4 relative overflow-hidden"
-                  style={{
-                    background: `linear-gradient(135deg, ${item.color}15 0%, ${item.color}05 100%)`,
-                    borderBottom: `1px solid ${item.color}30`,
-                  }}
+                  key={item.id}
+                  className="group relative bg-[#101F31] border border-[#20344A] rounded-2xl overflow-hidden cursor-pointer hover:border-[#2D4A68] transition-all duration-250"
+                  onClick={() => navigate(`/sectors/${item.id}`)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={e => e.key === 'Enter' && navigate(`/sectors/${item.id}`)}
+                  aria-label={`View ${item.name} design`}
                 >
-                  {/* Mini UI mockup */}
-                  <div className="flex gap-2 h-full">
-                    {/* Sidebar mockup */}
-                    <div
-                      className="w-20 rounded-lg flex flex-col p-2 gap-1"
-                      style={{ backgroundColor: item.color + '20', border: `1px solid ${item.color}30` }}
-                    >
-                      <div className="h-5 rounded" style={{ backgroundColor: item.color + '60' }} />
-                      {['', '', '', ''].map((_, i) => (
-                        <div
-                          key={i}
-                          className="h-3 rounded"
-                          style={{ backgroundColor: i === 0 ? item.color + '80' : item.color + '20', width: `${[80, 65, 75, 60][i]}%` }}
-                        />
-                      ))}
-                    </div>
-                    {/* Content mockup */}
-                    <div className="flex-1 flex flex-col gap-2">
-                      <div className="grid grid-cols-3 gap-1">
-                        {[1, 2, 3].map(j => (
-                          <div key={j} className="h-12 rounded-lg" style={{ backgroundColor: item.color + '15', border: `1px solid ${item.color}25` }}>
-                            <div className="p-1.5">
-                              <div className="h-1.5 rounded w-3/4 mb-1" style={{ backgroundColor: item.color + '40' }} />
-                              <div className="h-3 rounded w-1/2" style={{ backgroundColor: item.color + '60' }} />
-                            </div>
-                          </div>
+                  {/* Preview area */}
+                  <div
+                    className="h-48 p-4 relative overflow-hidden"
+                    style={{
+                      background: `linear-gradient(135deg, ${(item.colors?.primary || '#1683FF')}15 0%, ${(item.colors?.primary || '#1683FF')}05 100%)`,
+                      borderBottom: `1px solid ${(item.colors?.primary || '#1683FF')}30`,
+                    }}
+                  >
+                    {/* Mini UI mockup */}
+                    <div className="flex gap-2 h-full">
+                      {/* Sidebar mockup */}
+                      <div
+                        className="w-20 rounded-lg flex flex-col p-2 gap-1"
+                        style={{ backgroundColor: (item.colors?.primary || '#1683FF') + '20', border: `1px solid ${(item.colors?.primary || '#1683FF')}30` }}
+                      >
+                        <div className="h-5 rounded" style={{ backgroundColor: (item.colors?.primary || '#1683FF') + '60' }} />
+                        {['', '', '', ''].map((_, i) => (
+                          <div
+                            key={i}
+                            className="h-3 rounded"
+                            style={{ backgroundColor: i === 0 ? (item.colors?.primary || '#1683FF') + '80' : (item.colors?.primary || '#1683FF') + '20', width: `${[80, 65, 75, 60][i]}%` }}
+                          />
                         ))}
                       </div>
-                      <div className="flex-1 rounded-lg" style={{ backgroundColor: item.color + '10', border: `1px solid ${item.color}20` }} />
+                      {/* Content mockup */}
+                      <div className="flex-1 flex flex-col gap-2">
+                        <div className="grid grid-cols-3 gap-1">
+                          {[1, 2, 3].map(j => (
+                            <div key={j} className="h-12 rounded-lg" style={{ backgroundColor: (item.colors?.primary || '#1683FF') + '15', border: `1px solid ${(item.colors?.primary || '#1683FF')}25` }}>
+                              <div className="p-1.5">
+                                <div className="h-1.5 rounded w-3/4 mb-1" style={{ backgroundColor: (item.colors?.primary || '#1683FF') + '40' }} />
+                                <div className="h-3 rounded w-1/2" style={{ backgroundColor: (item.colors?.primary || '#1683FF') + '60' }} />
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                        <div className="flex-1 rounded-lg" style={{ backgroundColor: (item.colors?.primary || '#1683FF') + '10', border: `1px solid ${(item.colors?.primary || '#1683FF')}20` }} />
+                      </div>
+                    </div>
+
+                    {/* Emoji badge */}
+                    <div className="absolute top-3 right-3 w-8 h-8 rounded-lg bg-[#0B1626]/80 flex items-center justify-center text-base">
+                      {item.icon || '🏛️'}
                     </div>
                   </div>
 
-                  {/* Emoji badge */}
-                  <div className="absolute top-3 right-3 w-8 h-8 rounded-lg bg-[#0B1626]/80 flex items-center justify-center text-base">
-                    {item.icon}
+                  {/* Info */}
+                  <div className="p-4 flex items-center justify-between">
+                    <div>
+                      <h3 className="text-[#F4F7FB] font-semibold text-sm group-hover:text-white transition-colors">
+                        {item.name}
+                      </h3>
+                      <p className="text-[#64748B] text-xs mt-0.5">{item.shortDescription}</p>
+                    </div>
+                    <div className="flex items-center gap-1 text-[#1683FF] text-xs font-medium">
+                      View
+                      <ArrowRight size={12} className="group-hover:translate-x-0.5 transition-transform duration-200" />
+                    </div>
                   </div>
                 </div>
-
-                {/* Info */}
-                <div className="p-4 flex items-center justify-between">
-                  <div>
-                    <h3 className="text-[#F4F7FB] font-semibold text-sm group-hover:text-white transition-colors">
-                      {item.title}
-                    </h3>
-                    <p className="text-[#64748B] text-xs mt-0.5">{item.desc}</p>
-                  </div>
-                  <div className="flex items-center gap-1 text-[#1683FF] text-xs font-medium">
-                    View
-                    <ArrowRight size={12} className="group-hover:translate-x-0.5 transition-transform duration-200" />
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </PageContainer>
-      </section>
+              ))}
+            </div>
+          </PageContainer>
+        </section>
+      )}
 
       {/* ===== COLOR SYSTEM GENERATOR ===== */}
       <section className="py-16 border-t border-[#20344A]">

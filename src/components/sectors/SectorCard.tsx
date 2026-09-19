@@ -12,12 +12,24 @@ interface SectorCardProps {
 export const SectorCard: React.FC<SectorCardProps> = ({ sector, className = '' }) => {
   const navigate = useNavigate();
 
+  if (!sector) return null;
+
+  const colors = sector.colors || {
+    primary: '#1683FF',
+    secondary: '#12B8C4',
+    accent: '#8B5CF6',
+    surface: '#FFFFFF',
+  };
+
   const colorPreviews = [
-    { label: 'Primary', hex: sector.colors.primary },
-    { label: 'Secondary', hex: sector.colors.secondary },
-    { label: 'Accent', hex: sector.colors.accent },
-    { label: 'Surface', hex: sector.colors.surface || '#FFFFFF' },
+    { label: 'Primary', hex: colors.primary || '#1683FF' },
+    { label: 'Secondary', hex: colors.secondary || '#12B8C4' },
+    { label: 'Accent', hex: colors.accent || '#8B5CF6' },
+    { label: 'Surface', hex: colors.surface || '#FFFFFF' },
   ];
+
+  const characterTags = Array.isArray(sector.character) ? sector.character : [];
+  const sampleUIs = Array.isArray(sector.sampleUI) ? sector.sampleUI : [];
 
   return (
     <div
@@ -29,7 +41,7 @@ export const SectorCard: React.FC<SectorCardProps> = ({ sector, className = '' }
       `}
       onClick={() => navigate(`/sectors/${sector.id}`)}
       role="article"
-      aria-label={`${sector.name} sector design guide`}
+      aria-label={`${sector.name || 'Sector'} sector design guide`}
       tabIndex={0}
       onKeyDown={e => e.key === 'Enter' && navigate(`/sectors/${sector.id}`)}
     >
@@ -38,7 +50,7 @@ export const SectorCard: React.FC<SectorCardProps> = ({ sector, className = '' }
         <div className="flex items-center justify-between gap-2 mb-4">
           {/* Sector Icon */}
           <div className="w-12 h-12 rounded-xl bg-[#070E18] border border-[#243A54] flex items-center justify-center text-2xl shadow-inner shrink-0 group-hover:scale-105 group-hover:border-[#1683FF]/40 transition-all duration-300">
-            {sector.icon}
+            {sector.icon || '🏛️'}
           </div>
 
           {/* Color Swatches with tooltips */}
@@ -76,7 +88,7 @@ export const SectorCard: React.FC<SectorCardProps> = ({ sector, className = '' }
 
         {/* Character tags */}
         <div className="flex flex-wrap gap-1.5 mb-5">
-          {sector.character.slice(0, 4).map(tag => (
+          {characterTags.slice(0, 4).map(tag => (
             <Badge key={tag} variant="default" size="sm" className="bg-[#13253B] text-[#38BDF8] border-[#1E3A5F] px-2 py-0.5 text-[11px]">
               {tag}
             </Badge>
@@ -87,7 +99,7 @@ export const SectorCard: React.FC<SectorCardProps> = ({ sector, className = '' }
       {/* Explore button footer */}
       <div className="flex items-center justify-between pt-3.5 border-t border-[#1C314A] gap-2">
         <span className="text-[#64748B] text-xs font-medium whitespace-nowrap">
-          {sector.sampleUI.length} sample UI{sector.sampleUI.length !== 1 ? 's' : ''}
+          {sampleUIs.length} sample UI{sampleUIs.length !== 1 ? 's' : ''}
         </span>
         <span className="flex items-center gap-1.5 text-[#1683FF] text-xs font-semibold group-hover:text-[#38BDF8] group-hover:gap-2 transition-all duration-200 whitespace-nowrap shrink-0">
           Explore Guide

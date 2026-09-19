@@ -13,11 +13,10 @@ import {
     Trash2,
     X,
     Eye,
-
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import type { Sector } from '../types/sector';
-import { sectors } from '../data/sectors';
+import { saveSector } from './services/Sectors';
 
 // Multiple Color Combination Option Model
 export interface ColorSwatchItem {
@@ -29,14 +28,14 @@ export interface ColorSwatchItem {
 
 export interface ColorCombinationOption {
     id: string;
-    optionTitle: string; // e.g. "Option 1 - Official Civic Navy"
+    optionTitle: string; // e.g. "Option 1 - Custom Palette"
     swatches: ColorSwatchItem[];
 }
 
 // Multiple Typography Option Model
 export interface FontCombinationOption {
     id: string;
-    optionTitle: string; // e.g. "Option 1 - Modern Clean Sans"
+    optionTitle: string; // e.g. "Option 1 - Clean Sans"
     headingFont: string;
     bodyFont: string;
     sampleHeadingText: string;
@@ -44,163 +43,115 @@ export interface FontCombinationOption {
     notes: string;
 }
 
+const initialSectorData: Sector = {
+    id: '',
+    name: '',
+    category: '',
+    icon: '',
+    shortDescription: '',
+    description: '',
+    keywords: [],
+    character: [],
+    personality: {
+        trust: 50,
+        professional: 50,
+        serious: 50,
+        modern: 50,
+        friendly: 50,
+        luxury: 50,
+        playful: 50,
+    },
+    colors: {
+        primary: '#1683FF',
+        primaryName: '',
+        secondary: '#12B8C4',
+        secondaryName: '',
+        accent: '#8B5CF6',
+        accentName: '',
+        background: '#07111F',
+        surface: '#0B1626',
+        text: '#F4F7FB'
+    },
+    typography: {
+        heading: 'Inter',
+        body: 'Inter',
+        display: '',
+        mono: '',
+        weights: ['400', '600', '700'],
+        scale: 'Major Third (1.250)',
+        notes: ''
+    },
+    layout: {
+        style: 'Structured Grid',
+        density: 'Medium',
+        grid: '12-column responsive',
+        gutter: '24px',
+        container: '1280px max-width',
+        sectionSpacing: '64px',
+        cardSpacing: '24px'
+    },
+    shapes: {
+        cardRadius: '16px',
+        buttonRadius: '12px',
+        inputRadius: '12px',
+        borderStyle: '1px solid #20344A',
+        shadowStyle: '0 4px 12px rgba(0, 0, 0, 0.3)'
+    },
+    imagery: {
+        recommended: [],
+        avoid: []
+    },
+    components: [],
+    dosDonts: {
+        do: [],
+        dont: []
+    },
+    accessibility: {
+        minContrast: '4.5:1',
+        keyboardNav: '',
+        screenReader: '',
+        colorBlindness: '',
+        focusState: ''
+    },
+    sampleUI: []
+};
+
 export default function AddSector() {
     const navigate = useNavigate();
 
     // Tabbed form section state
     const [activeTab, setActiveTab] = useState<'basic' | 'colors' | 'personality' | 'typography' | 'imagery'>('basic');
     const [toastMessage, setToastMessage] = useState<string | null>(null);
+    const [loading, setLoading] = useState(false);
 
-    // 1. Color Combination Options State (User can add as many as they want)
+    // 1. Color Combination Options State (Clean empty palette)
     const [colorOptions, setColorOptions] = useState<ColorCombinationOption[]>([
         {
             id: 'color-opt-1',
-            optionTitle: 'Option 1 - Deep Civic Trust (Recommended)',
+            optionTitle: 'Option 1 - Default Palette',
             swatches: [
-                { id: 'c1-1', label: 'Primary', hex: '#123B63', name: 'Deep Navy Blue' },
-                { id: 'c1-2', label: 'Secondary', hex: '#1F5F95', name: 'Civic Azure' },
-                { id: 'c1-3', label: 'Accent', hex: '#C9972B', name: 'Official Gold' },
-                { id: 'c1-4', label: 'Surface', hex: '#0B1626', name: 'Dark Surface' },
-                { id: 'c1-5', label: 'Background', hex: '#07111F', name: 'Base Background' }
-            ]
-        },
-        {
-            id: 'color-opt-[#2]',
-            optionTitle: 'Option 2 - High Contrast Vibrant Teal',
-            swatches: [
-                { id: 'c2-1', label: 'Primary', hex: '#0F5257', name: 'Deep Teal' },
-                { id: 'c2-2', label: 'Secondary', hex: '#0B848F', name: 'Ocean Cyan' },
-                { id: 'c2-3', label: 'Accent', hex: '#E65100', name: 'Energetic Amber' },
-                { id: 'c2-4', label: 'Surface', hex: '#0A1A1C', name: 'Midnight Cyan' },
-                { id: 'c2-5', label: 'Background', hex: '#050E0F', name: 'Deep Abyss' }
-            ]
-        },
-        {
-            id: 'color-opt-[#3]',
-            optionTitle: 'Option 3 - Institutional Royal Gold',
-            swatches: [
-                { id: 'c3-1', label: 'Primary', hex: '#1A237E', name: 'Imperial Indigo' },
-                { id: 'c3-2', label: 'Secondary', hex: '#283593', name: 'Royal Blue' },
-                { id: 'c3-3', label: 'Accent', hex: '#FFD700', name: 'Prestige Gold' },
-                { id: 'c3-4', label: 'Surface', hex: '#0D1B2A', name: 'Slate Surface' }
+                { id: 'c1-1', label: 'Primary', hex: '#1683FF', name: 'Primary Color' },
+                { id: 'c1-2', label: 'Secondary', hex: '#12B8C4', name: 'Secondary Color' },
+                { id: 'c1-3', label: 'Accent', hex: '#8B5CF6', name: 'Accent Color' }
             ]
         }
     ]);
 
-    // 2. Font Combination Options State (User can add as many as they want)
+    // 2. Font Combination Options State (Clean empty font pairing)
     const [fontOptions, setFontOptions] = useState<FontCombinationOption[]>([
         {
             id: 'font-opt-1',
-            optionTitle: 'Option 1 - Inter Clean Sans (Universal Accessibility)',
+            optionTitle: 'Option 1 - Default Font Pairing',
             headingFont: 'Inter',
             bodyFont: 'Inter',
-            sampleHeadingText: 'Empowering Citizens Through Intuitive UI',
-            sampleParagraphText: 'Government and public administration interfaces demand clarity, high readability, and reliable typographic hierarchy across all age groups and devices.',
-            notes: 'Best for civic services, municipal portals, and mobile app design.'
-        },
-        {
-            id: 'font-opt-2',
-            optionTitle: 'Option 2 - Playfair Display & Source Sans (Institutional Elegance)',
-            headingFont: 'Playfair Display',
-            bodyFont: 'Source Sans Pro',
-            sampleHeadingText: 'Official Public Administration & Gazette Portal',
-            sampleParagraphText: 'Combining a stately serif heading with a clean sans-serif body text creates visual authority and formal elegance for policy frameworks.',
-            notes: 'Recommended for legal, governmental publications, and heritage archives.'
-        },
-        {
-            id: 'font-opt-3',
-            optionTitle: 'Option 3 - Outfit & Roboto (Modern Digital Dashboard)',
-            headingFont: 'Outfit',
-            bodyFont: 'Roboto',
-            sampleHeadingText: 'Smart City Analytics & Real-Time Open Data',
-            sampleParagraphText: 'A geometric sans heading paired with highly legible body text optimized for dense numerical tables and data charts.',
-            notes: 'Ideal for city analytics, data visualization, and open data portals.'
+            sampleHeadingText: 'Sample Heading Text',
+            sampleParagraphText: 'Sample paragraph text for live font preview.',
+            notes: ''
         }
     ]);
 
     // Main Sector Form State
-    const [sectorData, setSectorData] = useState<Sector>({
-        id: 'government-custom',
-        name: 'Government & Public Sector',
-        category: 'Public Administration',
-        icon: '🏛️',
-        shortDescription: 'Government and public administration UI design focuses on trust, transparency, and accessibility for all citizens.',
-        description: 'A comprehensive design guide tailored for civic services, municipal portals, and public administration dashboards requiring high contrast, universal accessibility, and institutional trust.',
-        keywords: ['trust', 'government', 'civic', 'public', 'accessibility', 'transparent'],
-        character: ['Trustworthy', 'Professional', 'Stable', 'Accessible', 'Institutional', 'Transparent'],
-        personality: {
-            trust: 95,
-            professional: 90,
-            serious: 85,
-            modern: 65,
-            friendly: 55,
-            luxury: 15,
-            playful: 10,
-        },
-        colors: {
-            primary: '#123B63',
-            primaryName: 'Deep Navy Blue',
-            secondary: '#1F5F95',
-            secondaryName: 'Civic Blue',
-            accent: '#C9972B',
-            accentName: 'Official Gold',
-            background: '#07111F',
-            surface: '#0B1626',
-            text: '#F4F7FB'
-        },
-        typography: {
-            heading: 'Inter',
-            body: 'Inter',
-            display: 'Inter',
-            mono: 'JetBrains Mono',
-            weights: ['400', '500', '600', '700'],
-            scale: 'Major Third (1.250)',
-            notes: 'Clean sans-serif for high legibility across all age groups.'
-        },
-        layout: {
-            style: 'Structured Grid',
-            density: 'Medium',
-            grid: '12-column responsive',
-            gutter: '24px',
-            container: '1280px max-width',
-            sectionSpacing: '64px',
-            cardSpacing: '24px'
-        },
-        shapes: {
-            cardRadius: '16px',
-            buttonRadius: '12px',
-            inputRadius: '12px',
-            borderStyle: '1px solid #20344A',
-            shadowStyle: '0 4px 12px rgba(0, 0, 0, 0.3)'
-        },
-        imagery: {
-            recommended: ['Official buildings', 'Citizens', 'Maps & Geodata', 'Data visualizations', 'Document icons', 'Diverse people'],
-            avoid: ['Stock photo clichés', 'Overly flashy neon', 'Low contrast backgrounds', 'Cluttered graphics']
-        },
-        components: [
-            { name: 'Service Portal Header', notes: 'Top bar with language switch & accessibility controls' },
-            { name: 'Status Indicator Pill', notes: 'Color-coded state badge for application tracking' }
-        ],
-        dosDonts: {
-            do: ['Maintain minimum 4.5:1 contrast for text', 'Provide visible focus states for keyboard nav'],
-            dont: ['Rely solely on color to convey info', 'Use decorative fonts for body copy']
-        },
-        accessibility: {
-            minContrast: '7:1 (AAA standard)',
-            keyboardNav: 'Full tab navigation with visible focus ring',
-            screenReader: 'ARIA labels on all controls',
-            colorBlindness: 'Deuteranopia safe choice',
-            focusState: '2px solid #1683FF'
-        },
-        sampleUI: [
-            {
-                id: 'portal-1',
-                title: 'Citizen Portal Dashboard',
-                type: 'portal',
-                description: 'Unified citizen service dashboard.'
-            }
-        ]
-    });
+    const [sectorData, setSectorData] = useState<Sector>(initialSectorData);
 
     // Dynamic Google Font Preloader
     useEffect(() => {
@@ -299,7 +250,7 @@ export default function AddSector() {
             bodyFont: 'Open Sans',
             sampleHeadingText: 'Accessible Typography & Visual Contrast',
             sampleParagraphText: 'Consistent font pairings elevate user confidence, ensure effortless reading, and optimize accessibility across devices.',
-            notes: 'Custom typographic combination added for specific branding requirements.'
+            notes: ''
         };
         setFontOptions([...fontOptions, newFontOpt]);
         showNotification(`Added new Font Combination Option ${nextNum}!`);
@@ -333,30 +284,57 @@ export default function AddSector() {
         setSectorData({ ...sectorData, character: sectorData.character.filter(t => t !== tag) });
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        // Attach chosen primary color option & fonts to main sector model
+
+        if (!sectorData.name.trim()) {
+            showNotification('Please fill in the Sector Name.');
+            setActiveTab('basic');
+            return;
+        }
+
+        setLoading(true);
+
         const primaryOption = colorOptions[0];
+        const updatedColors = { ...sectorData.colors };
         if (primaryOption && primaryOption.swatches.length >= 3) {
-            sectorData.colors.primary = primaryOption.swatches[0].hex;
-            sectorData.colors.primaryName = primaryOption.swatches[0].name;
-            sectorData.colors.secondary = primaryOption.swatches[1].hex;
-            sectorData.colors.secondaryName = primaryOption.swatches[1].name;
-            sectorData.colors.accent = primaryOption.swatches[2].hex;
-            sectorData.colors.accentName = primaryOption.swatches[2].name;
+            updatedColors.primary = primaryOption.swatches[0].hex;
+            updatedColors.primaryName = primaryOption.swatches[0].name;
+            updatedColors.secondary = primaryOption.swatches[1].hex;
+            updatedColors.secondaryName = primaryOption.swatches[1].name;
+            updatedColors.accent = primaryOption.swatches[2].hex;
+            updatedColors.accentName = primaryOption.swatches[2].name;
         }
 
         const primaryFont = fontOptions[0];
+        const updatedTypography = { ...sectorData.typography };
         if (primaryFont) {
-            sectorData.typography.heading = primaryFont.headingFont;
-            sectorData.typography.body = primaryFont.bodyFont;
+            updatedTypography.heading = primaryFont.headingFont;
+            updatedTypography.body = primaryFont.bodyFont;
         }
 
-        sectors.unshift(sectorData);
-        showNotification(`Sector "${sectorData.name}" added successfully with ${colorOptions.length} Color Options & ${fontOptions.length} Font Combinations!`);
-        setTimeout(() => {
-            navigate('/admin');
-        }, 1400);
+        const payload: Sector = {
+            ...sectorData,
+            id: sectorData.id || sectorData.name.toLowerCase().replace(/\s+/g, '-'),
+            colors: updatedColors,
+            typography: updatedTypography,
+            colorOptions,
+            fontOptions,
+        } as any;
+
+        try {
+            console.log("Sending Sector payload to API:", payload);
+            await saveSector(payload);
+            showNotification(`Sector "${payload.name}" saved successfully!`);
+            setTimeout(() => {
+                navigate('/admin');
+            }, 1400);
+        } catch (error: any) {
+            console.error("Failed to save sector:", error);
+            showNotification(error?.response?.data?.message || 'Failed to save sector to server.');
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (
@@ -402,10 +380,11 @@ export default function AddSector() {
                     </button>
                     <button
                         onClick={handleSubmit}
-                        className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#1683FF] to-[#0F6EE0] text-white text-xs font-bold shadow-[0_0_15px_rgba(22,131,255,0.4)] hover:shadow-[0_0_20px_rgba(22,131,255,0.6)] transition-all cursor-pointer"
+                        disabled={loading}
+                        className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#1683FF] to-[#0F6EE0] text-white text-xs font-bold shadow-[0_0_15px_rgba(22,131,255,0.4)] hover:shadow-[0_0_20px_rgba(22,131,255,0.6)] transition-all cursor-pointer disabled:opacity-50"
                     >
                         <Save size={16} />
-                        <span>Save Sector Guide</span>
+                        <span>{loading ? 'Saving...' : 'Save Sector Guide'}</span>
                     </button>
                 </div>
             </div>
@@ -506,7 +485,18 @@ export default function AddSector() {
                                 rows={2}
                                 value={sectorData.shortDescription}
                                 onChange={(e) => setSectorData({ ...sectorData, shortDescription: e.target.value })}
-                                placeholder="Government and public administration UI design focuses on trust, transparency, and accessibility for all citizens."
+                                placeholder="Short description of the sector UI framework..."
+                                className="w-full bg-[#07111F] text-[#F4F7FB] text-xs p-3 rounded-xl border border-[#20344A] focus:border-[#1683FF] focus:outline-none leading-relaxed"
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-xs font-semibold text-[#94A3B8] mb-1.5">Full Description</label>
+                            <textarea
+                                rows={3}
+                                value={sectorData.description}
+                                onChange={(e) => setSectorData({ ...sectorData, description: e.target.value })}
+                                placeholder="Detailed overview and guidance for this sector..."
                                 className="w-full bg-[#07111F] text-[#F4F7FB] text-xs p-3 rounded-xl border border-[#20344A] focus:border-[#1683FF] focus:outline-none leading-relaxed"
                             />
                         </div>
@@ -803,9 +793,7 @@ export default function AddSector() {
                                         />
                                     </div>
 
-                                    {/* ========================================================
-                                       LIVE REAL-TIME FONT PREVIEW CARD WITH DUMMY TEXT & PARAGRAPH
-                                                       ======================================================== */}
+                                    {/* LIVE REAL-TIME FONT PREVIEW CARD */}
                                     <div className="p-5 md:p-6 rounded-2xl bg-[#07111F] border border-[#20344A] space-y-4 shadow-inner">
                                         <div className="flex items-center justify-between border-b border-[#1E334D] pb-3">
                                             <span className="text-xs font-bold text-[#C084FC] flex items-center gap-2">
@@ -961,7 +949,7 @@ export default function AddSector() {
                                             }
                                         }
                                     }}
-                                    placeholder="e.g. Official buildings, Maps"
+                                    placeholder="e.g. Dashboards, Charts"
                                     className="flex-1 bg-[#07111F] text-[#F4F7FB] text-xs p-2.5 rounded-xl border border-[#20344A]"
                                 />
                                 <button

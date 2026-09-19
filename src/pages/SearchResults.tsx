@@ -1,17 +1,40 @@
-import React, { useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
-import { ArrowLeft, ArrowRight, Search } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Search, Loader2 } from 'lucide-react';
 import { PageContainer } from '../components/layout/PageContainer';
 import { Badge } from '../components/common/Badge';
 import { EmptyState } from '../components/common/EmptyState';
-import { sectors } from '../data/sectors';
 import { searchSectors } from '../utils/search';
+import { getSectors } from '../Admin/services/Sectors';
+import type { Sector } from '../types/sector';
 
 export const SearchResults: React.FC = () => {
   const [searchParams] = useSearchParams();
   const query = searchParams.get('q') || '';
+  const [sectorsList, setSectorsList] = useState<Sector[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
 
-  const results = useMemo(() => searchSectors(sectors, query), [query]);
+  useEffect(() => {
+    const fetchSectors = async () => {
+      try {
+        setLoading(true);
+        const data = await getSectors();
+        let apiSectors: Sector[] = [];
+        if (Array.isArray(data)) apiSectors = data;
+        else if (data && Array.isArray((data as any).sectors)) apiSectors = (data as any).sectors;
+        else if (data && Array.isArray((data as any).data)) apiSectors = (data as any).data;
+        setSectorsList(apiSectors || []);
+      } catch (err) {
+        console.error("Error fetching sectors in SearchResults:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchSectors();
+  }, []);
+
+  const results = useMemo(() => searchSectors(sectorsList, query), [sectorsList, query]);
 
   return (
     <div className="min-h-screen py-8">
@@ -37,8 +60,12 @@ export const SearchResults: React.FC = () => {
           </div>
         </div>
 
-        {/* Results */}
-        {results.length === 0 ? (
+        {/* Loading Indicator */}
+        {loading ? (
+          <div className="flex justify-center py-12">
+            <Loader2 className="animate-spin text-[#1683FF]" size={28} />
+          </div>
+        ) : results.length === 0 ? (
           <EmptyState
             icon={<Search size={28} />}
             title="No sectors found"
@@ -48,7 +75,7 @@ export const SearchResults: React.FC = () => {
         ) : (
           <div className="space-y-3">
             {results.map((sector, i) => {
-              const colorPreviews = [sector.colors.primary, sector.colors.secondary, sector.colors.accent];
+              const colorPreviews = [sector.colors?.primary, sector.colors?.secondary, sector.colors?.accent].filter(Boolean);
               return (
                 <Link
                   key={sector.id}
@@ -59,7 +86,7 @@ export const SearchResults: React.FC = () => {
                 >
                   {/* Icon */}
                   <div className="w-12 h-12 rounded-xl bg-[#0B1626] border border-[#20344A] flex items-center justify-center text-2xl shrink-0">
-                    {sector.icon}
+                    {sector.icon || '🏛️'}
                   </div>
 
                   {/* Info */}
@@ -72,9 +99,9 @@ export const SearchResults: React.FC = () => {
                         <Badge variant="default" size="sm">{sector.category}</Badge>
                       )}
                     </div>
-                    <p className="text-[#64748B] text-sm mb-2 line-clamp-1">{sector.description}</p>
+                    <p className="text-[#64748B] text-sm mb-2 line-clamp-1">{sector.description || sector.shortDescription}</p>
                     <div className="flex flex-wrap gap-1.5">
-                      {sector.character.slice(0, 4).map(tag => (
+                      {(sector.character || []).slice(0, 4).map(tag => (
                         <Badge key={tag} variant="default" size="sm">{tag}</Badge>
                       ))}
                     </div>

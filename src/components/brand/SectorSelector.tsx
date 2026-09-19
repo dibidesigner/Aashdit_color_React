@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import { Search, Check } from 'lucide-react';
-import { sectors } from '../../data/sectors';
+import React, { useState, useEffect } from 'react';
+import { Search, Check, Loader2 } from 'lucide-react';
+import { getSectors } from '../../Admin/services/Sectors';
 import type { Sector } from '../../types/sector';
 
 interface SectorSelectorProps {
@@ -12,13 +12,35 @@ export const SectorSelector: React.FC<SectorSelectorProps> = ({
   selectedSectorId,
   onSelectSector,
 }) => {
+  const [sectorsList, setSectorsList] = useState<Sector[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
   const [search, setSearch] = useState('');
 
-  const filtered = sectors.filter(
+  useEffect(() => {
+    const fetchSectors = async () => {
+      try {
+        setLoading(true);
+        const data = await getSectors();
+        let apiSectors: Sector[] = [];
+        if (Array.isArray(data)) apiSectors = data;
+        else if (data && Array.isArray((data as any).sectors)) apiSectors = (data as any).sectors;
+        else if (data && Array.isArray((data as any).data)) apiSectors = (data as any).data;
+        setSectorsList(apiSectors || []);
+      } catch (err) {
+        console.error("Error fetching sectors in SectorSelector:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchSectors();
+  }, []);
+
+  const filtered = sectorsList.filter(
     s =>
-      s.name.toLowerCase().includes(search.toLowerCase()) ||
+      (s.name || '').toLowerCase().includes(search.toLowerCase()) ||
       (s.category && s.category.toLowerCase().includes(search.toLowerCase())) ||
-      s.shortDescription.toLowerCase().includes(search.toLowerCase())
+      (s.shortDescription || '').toLowerCase().includes(search.toLowerCase())
   );
 
   return (
@@ -33,61 +55,71 @@ export const SectorSelector: React.FC<SectorSelectorProps> = ({
           type="text"
           value={search}
           onChange={e => setSearch(e.target.value)}
-          placeholder="🔍 Search sector (e.g. Healthcare, Government, Finance)..."
+          placeholder="🔍 Search sector..."
           className="w-full h-11 pl-10 pr-4 bg-[#0B1626] border border-[#20344A] rounded-xl text-[#F4F7FB] placeholder-[#64748B] text-sm focus:outline-none focus:border-[#1683FF] transition-all"
         />
       </div>
 
+      {loading && (
+        <div className="flex justify-center py-8">
+          <Loader2 className="animate-spin text-[#1683FF]" size={24} />
+        </div>
+      )}
+
       {/* Grid of Sector Options */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 max-h-[320px] overflow-y-auto pr-1">
-        {filtered.map(sec => {
-          const isSelected = sec.id === selectedSectorId;
+      {!loading && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 max-h-[320px] overflow-y-auto pr-1">
+          {filtered.map(sec => {
+            const isSelected = sec.id === selectedSectorId;
 
-          return (
-            <div
-              key={sec.id}
-              onClick={() => onSelectSector(sec)}
-              className={`
-                p-3.5 rounded-xl border cursor-pointer transition-all duration-200 flex items-start gap-3 relative
-                ${isSelected
-                  ? 'bg-[rgba(22,131,255,0.12)] border-[#1683FF] shadow-[0_0_15px_rgba(22,131,255,0.2)]'
-                  : 'bg-[#101F31] border-[#20344A] hover:border-[#2D4A68] hover:bg-[#13253A]'
-                }
-              `}
-            >
-              <div className="w-10 h-10 rounded-lg bg-[#0B1626] border border-[#20344A] flex items-center justify-center text-xl shrink-0">
-                {sec.icon}
-              </div>
-
-              <div className="flex-1 min-w-0 pr-5">
-                <div className="flex items-center gap-2 mb-0.5">
-                  <h4 className="text-[#F4F7FB] font-semibold text-sm truncate">
-                    {sec.name}
-                  </h4>
+            return (
+              <div
+                key={sec.id}
+                onClick={() => onSelectSector(sec)}
+                className={`
+                  p-3.5 rounded-xl border cursor-pointer transition-all duration-200 flex items-start gap-3 relative
+                  ${isSelected
+                    ? 'bg-[rgba(22,131,255,0.12)] border-[#1683FF] shadow-[0_0_15px_rgba(22,131,255,0.2)]'
+                    : 'bg-[#101F31] border-[#20344A] hover:border-[#2D4A68] hover:bg-[#13253A]'
+                  }
+                `}
+              >
+                <div className="w-10 h-10 rounded-lg bg-[#0B1626] border border-[#20344A] flex items-center justify-center text-xl shrink-0">
+                  {sec.icon || '🏛️'}
                 </div>
-                <p className="text-[#64748B] text-xs line-clamp-1">
-                  {sec.shortDescription}
-                </p>
-                <span className="inline-block mt-1.5 px-2 py-0.5 bg-[#0B1626] text-[#38BDF8] text-[10px] rounded border border-[#20344A]">
-                  {sec.category}
-                </span>
-              </div>
 
-              {isSelected && (
-                <div className="absolute top-3 right-3 w-5 h-5 rounded-full bg-[#1683FF] flex items-center justify-center text-white">
-                  <Check size={12} />
+                <div className="flex-1 min-w-0 pr-5">
+                  <div className="flex items-center gap-2 mb-0.5">
+                    <h4 className="text-[#F4F7FB] font-semibold text-sm truncate">
+                      {sec.name}
+                    </h4>
+                  </div>
+                  <p className="text-[#64748B] text-xs line-clamp-1">
+                    {sec.shortDescription}
+                  </p>
+                  {sec.category && (
+                    <span className="inline-block mt-1.5 px-2 py-0.5 bg-[#0B1626] text-[#38BDF8] text-[10px] rounded border border-[#20344A]">
+                      {sec.category}
+                    </span>
+                  )}
                 </div>
-              )}
+
+                {isSelected && (
+                  <div className="absolute top-3 right-3 w-5 h-5 rounded-full bg-[#1683FF] flex items-center justify-center text-white">
+                    <Check size={12} />
+                  </div>
+                )}
+              </div>
+            );
+          })}
+
+          {filtered.length === 0 && (
+            <div className="col-span-full py-8 text-center text-[#64748B] text-sm">
+              No sectors found matching &quot;{search}&quot;
             </div>
-          );
-        })}
-
-        {filtered.length === 0 && (
-          <div className="col-span-full py-8 text-center text-[#64748B] text-sm">
-            No sectors found matching &quot;{search}&quot;
-          </div>
-        )}
-      </div>
+          )}
+        </div>
+      )}
     </div>
   );
 };

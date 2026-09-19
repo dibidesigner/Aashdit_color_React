@@ -28,8 +28,12 @@ const getBarColor = (value: number): string => {
 };
 
 export const PersonalityMeter: React.FC<PersonalityMeterProps> = ({ personality }) => {
+  if (!personality || typeof personality !== 'object') {
+    return <div className="text-xs text-[#64748B]">No personality data available</div>;
+  }
+
   const entries = Object.entries(personality)
-    .filter(([, v]) => v !== undefined)
+    .filter(([, v]) => typeof v === 'number')
     .sort(([, a], [, b]) => (b as number) - (a as number));
 
   return (

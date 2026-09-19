@@ -46,10 +46,7 @@ export interface GetSingleUserResponse {
 
 const BASE_URL = import.meta.env.VITE_API_URL;
 
-/**
- * Service to create a new user.
- * POST /auth/saveuser/
- */
+
 export const saveUser = async (userData: SaveUserPayload): Promise<SaveUserResponse> => {
     console.log("Creating user payload:", userData);
     const response = await axios.post(`${BASE_URL}/auth/saveuser/`, userData);
@@ -57,20 +54,14 @@ export const saveUser = async (userData: SaveUserPayload): Promise<SaveUserRespo
     return response.data;
 };
 
-/**
- * Service to fetch all users.
- * GET /auth/saveuser/
- */
+
 export const getUsers = async (): Promise<GetUsersResponse> => {
     const response = await axios.get<GetUsersResponse>(`${BASE_URL}/auth/saveuser/`);
     console.log("getUsers response:", response.data);
     return response.data;
 };
 
-/**
- * Service to fetch a single user by ID.
- * GET /auth/saveuser/<id>/
- */
+
 export const getUserById = async (id: number | string): Promise<GetSingleUserResponse> => {
     try {
         const response = await axios.get<GetSingleUserResponse>(`${BASE_URL}/auth/saveuser/${id}/`);
@@ -82,10 +73,7 @@ export const getUserById = async (id: number | string): Promise<GetSingleUserRes
     }
 };
 
-/**
- * Service to update an existing user.
- * PUT /auth/saveuser/<id>/
- */
+
 export const updateUser = async (id: number | string, userData: Partial<SaveUserPayload>): Promise<SaveUserResponse> => {
     console.log(`Updating user ${id} payload:`, userData);
     try {
@@ -98,10 +86,7 @@ export const updateUser = async (id: number | string, userData: Partial<SaveUser
     }
 };
 
-/**
- * Service to delete a user by ID.
- * DELETE /auth/saveuser/<id>/
- */
+
 export const deleteUser = async (id: number | string): Promise<SaveUserResponse> => {
     console.log(`Deleting user ${id}`);
     try {

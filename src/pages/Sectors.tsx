@@ -1,18 +1,51 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { PageContainer } from '../components/layout/PageContainer';
 import { SectorGrid } from '../components/sectors/SectorGrid';
 import { SearchBar } from '../components/common/SearchBar';
-import { sectors } from '../data/sectors';
+import { sectors as staticSectors } from '../data/sectors';
 import { searchSectors } from '../utils/search';
-import { Layers } from 'lucide-react';
-
-const categories = ['All', ...Array.from(new Set(sectors.map(s => s.category).filter(Boolean))) as string[]];
+import { Layers, Loader2 } from 'lucide-react';
+import { getSectors } from '../Admin/services/Sectors';
+import type { Sector } from '../types/sector';
 
 export const Sectors: React.FC = () => {
+  const [sectorsList, setSectorsList] = useState<Sector[]>(staticSectors);
+  const [loading, setLoading] = useState<boolean>(true);
   const [search, setSearch] = useState('');
   const [activeCategory, setActiveCategory] = useState('All');
 
-  const filtered = searchSectors(sectors, search).filter(s =>
+  useEffect(() => {
+    const fetchSectors = async () => {
+      try {
+        setLoading(true);
+        const data = await getSectors();
+        let apiSectors: Sector[] = [];
+        if (Array.isArray(data)) {
+          apiSectors = data;
+        } else if (data && Array.isArray((data as any).sectors)) {
+          apiSectors = (data as any).sectors;
+        } else if (data && Array.isArray((data as any).data)) {
+          apiSectors = (data as any).data;
+        }
+
+        if (apiSectors && apiSectors.length > 0) {
+          const apiIds = new Set(apiSectors.map(s => s.id));
+          const filteredStatic = staticSectors.filter(s => !apiIds.has(s.id));
+          setSectorsList([...apiSectors, ...filteredStatic]);
+        }
+      } catch (err) {
+        console.error("Error fetching sectors from API:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchSectors();
+  }, []);
+
+  const categories = ['All', ...Array.from(new Set(sectorsList.map(s => s.category).filter(Boolean))) as string[]];
+
+  const filtered = searchSectors(sectorsList, search).filter(s =>
     activeCategory === 'All' || (s.category && s.category === activeCategory)
   );
 
@@ -27,7 +60,7 @@ export const Sectors: React.FC = () => {
             </div>
             <div>
               <h1 className="text-[#F4F7FB] text-2xl font-bold">All Sectors</h1>
-              <p className="text-[#64748B] text-sm">{sectors.length} design guides available</p>
+              <p className="text-[#64748B] text-sm">{sectorsList.length} design guides available</p>
             </div>
           </div>
 
@@ -64,14 +97,21 @@ export const Sectors: React.FC = () => {
         {/* Results count */}
         {(search || activeCategory !== 'All') && (
           <p className="text-[#64748B] text-sm mb-4">
-            Showing {filtered.length} of {sectors.length} sectors
+            Showing {filtered.length} of {sectorsList.length} sectors
           </p>
+        )}
+
+        {/* Loading Indicator */}
+        {loading && (
+          <div className="flex justify-center my-8">
+            <Loader2 className="animate-spin text-[#1683FF]" size={28} />
+          </div>
         )}
 
         {/* Grid */}
         <SectorGrid sectors={filtered} columns={4} />
 
-        {filtered.length === 0 && (
+        {!loading && filtered.length === 0 && (
           <div className="text-center py-20">
             <p className="text-[#64748B] text-base">No sectors found for &quot;{search}&quot;</p>
             <button

@@ -9,17 +9,18 @@ import {
     Shield,
     Layers,
     X,
-    AlertTriangle,
     Sparkles,
     CheckCircle2,
     XCircle,
     Mail,
     Activity,
     ArrowUpRight,
+    UserPlus as UserPlusIcon
 } from 'lucide-react';
-import { sectors } from '../data/sectors';
 import { SectorCard } from '../components/sectors/SectorCard';
 import { saveUser, getUsers, updateUser, deleteUser } from './services/auth';
+import { getSectors } from './services/Sectors';
+import type { Sector } from '../types/sector';
 
 // Interface for User model
 export interface AdminUser {
@@ -44,60 +45,8 @@ const INITIAL_USERS: AdminUser[] = [
         mobile: "9348053242",
         avatarBg: 'from-[#1683FF] to-[#38BDF8]',
         createdAt: '2026-01-15'
-    },
-    {
-        id: 'usr-2',
-        name: 'Sarah Jenkins',
-        email: 'sarah.j@fintechatlas.com',
-        role: 'Admin',
-        status: 'Active',
-        mobile: "9348053242",
-        avatarBg: 'from-[#8B5CF6] to-[#C084FC]',
-        createdAt: '2026-02-01'
-    },
-    {
-        id: 'usr-3',
-        name: 'Dr. Rahul Verma',
-        email: 'rahul.verma@healthtech.org',
-        role: 'Editor',
-        status: 'Active',
-        mobile: "9348053242",
-        avatarBg: 'from-[#10B981] to-[#34D399]',
-        createdAt: '2026-02-14'
-    },
-    {
-        id: 'usr-4',
-        name: 'Elena Rostova',
-        email: 'elena@luxurydesign.fr',
-        role: 'Editor',
-        status: 'Inactive',
-        mobile: "9348053242",
-        avatarBg: 'from-[#F59E0B] to-[#FBBF24]',
-        createdAt: '2026-03-02'
-    },
-    {
-        id: 'usr-5',
-        name: 'Marcus Chen',
-        email: 'marcus.c@cybersec.io',
-        role: 'Viewer',
-        status: 'Active',
-        mobile: "9348053242",
-        avatarBg: 'from-[#EF4444] to-[#F87171]',
-        createdAt: '2026-03-10'
-    },
-    {
-        id: 'usr-6',
-        name: 'Ananya Sharma',
-        email: 'ananya@eduportal.edu',
-        role: 'Viewer',
-        status: 'Pending',
-        mobile: "9348053242",
-        avatarBg: 'from-[#0EA5E9] to-[#38BDF8]',
-        createdAt: '2026-03-15'
     }
 ];
-
-
 
 export const AdminHome: React.FC = () => {
     const navigate = useNavigate();
@@ -107,12 +56,17 @@ export const AdminHome: React.FC = () => {
     const [roleFilter, setRoleFilter] = useState<string>('All');
     const [statusFilter, setStatusFilter] = useState<string>('All');
 
+    // State for Sectors
+    const [sectorList, setSectorList] = useState<Sector[]>([]);
+    const [sectorSearch, setSectorSearch] = useState('');
+    const [selectedCategory, setSelectedCategory] = useState('All');
+
     // Modals state
     const [isAddUserOpen, setIsAddUserOpen] = useState(false);
     const [editingUser, setEditingUser] = useState<AdminUser | null>(null);
     const [deletingUser, setDeletingUser] = useState<AdminUser | null>(null);
 
-    // Form State for Add / Edit
+    // Form State for Add / Edit User
     const [formData, setFormData] = useState<{
         name: string;
         email: string;
@@ -127,10 +81,6 @@ export const AdminHome: React.FC = () => {
         status: 'Active'
     });
 
-    // State for Sector Search & Filter
-    const [sectorSearch, setSectorSearch] = useState('');
-    const [selectedCategory, setSelectedCategory] = useState('All');
-
     // Toast Notification State
     const [toastMessage, setToastMessage] = useState<{ text: string; type: 'success' | 'error' | 'info' } | null>(null);
 
@@ -143,7 +93,7 @@ export const AdminHome: React.FC = () => {
     const fetchUserList = async () => {
         try {
             const res = await getUsers();
-            if (res && res.users) {
+            if (res && Array.isArray(res.users)) {
                 const gradients = [
                     'from-[#1683FF] to-[#38BDF8]',
                     'from-[#8B5CF6] to-[#C084FC]',
@@ -166,13 +116,24 @@ export const AdminHome: React.FC = () => {
                 });
                 setUserList(mappedUsers);
             }
-        } catch (error) {
-            console.error('Error fetching users from GET endpoint:', error);
+        } catch (error: any) {
+            console.error('Error fetching users from GET endpoint:', error?.message || String(error));
+        }
+    };
+
+    // Fetch sectors from API
+    const fetchSectorList = async () => {
+        try {
+            const data = await getSectors();
+            setSectorList(Array.isArray(data) ? data : []);
+        } catch (error: any) {
+            console.error('Error fetching sectors from API:', error?.message || String(error));
         }
     };
 
     useEffect(() => {
         fetchUserList();
+        fetchSectorList();
     }, []);
 
     // User CRUD Handlers
@@ -210,7 +171,7 @@ export const AdminHome: React.FC = () => {
         const last_name = nameParts.slice(1).join(' ') || '';
 
         try {
-            const response = await saveUser({
+            await saveUser({
                 username: formData.email.trim(),
                 email: formData.email.trim(),
                 mobileno: formData.mobile,
@@ -220,14 +181,11 @@ export const AdminHome: React.FC = () => {
                 status: formData.status
             });
 
-            console.log("Response", response);
-
-            // Re-fetch users from API after adding new user
             await fetchUserList();
             setIsAddUserOpen(false);
             showToast(`User "${formData.name.trim()}" added successfully!`, 'success');
         } catch (error: any) {
-            console.error('Error saving user:', error);
+            console.error('Error saving user:', error?.response?.data?.message || error?.message || 'Failed to save user.');
             const errorMessage = error?.response?.data?.message || error?.response?.data?.error || 'Failed to save user.';
             showToast(errorMessage, 'error');
         }
@@ -260,7 +218,7 @@ export const AdminHome: React.FC = () => {
             setEditingUser(null);
             showToast(`User "${formData.name}" updated successfully!`, 'success');
         } catch (error: any) {
-            console.error('Error updating user:', error);
+            console.error('Error updating user:', error?.response?.data?.message || error?.message || 'Failed to update user.');
             const errorMessage = error?.response?.data?.message || 'Failed to update user.';
             showToast(errorMessage, 'error');
         }
@@ -273,7 +231,7 @@ export const AdminHome: React.FC = () => {
             await fetchUserList();
             showToast(`User "${deletingUser.name}" has been deleted.`, 'info');
         } catch (error: any) {
-            console.error('Error deleting user:', error);
+            console.error('Error deleting user:', error?.response?.data?.message || error?.message || 'Failed to delete user.');
             const errorMessage = error?.response?.data?.message || 'Failed to delete user.';
             showToast(errorMessage, 'error');
         } finally {
@@ -293,9 +251,12 @@ export const AdminHome: React.FC = () => {
     };
 
     // Filtered Users
-    const filteredUsers = userList.filter(user => {
-        const matchesSearch = user.name.toLowerCase().includes(userSearch.toLowerCase()) ||
-            user.email.toLowerCase().includes(userSearch.toLowerCase())
+    const filteredUsers = (userList || []).filter(user => {
+        if (!user || typeof user !== 'object') return false;
+        const userName = typeof user.name === 'string' ? user.name : '';
+        const userEmail = typeof user.email === 'string' ? user.email : '';
+        const matchesSearch = userName.toLowerCase().includes(userSearch.toLowerCase()) ||
+            userEmail.toLowerCase().includes(userSearch.toLowerCase());
 
         const matchesRole = roleFilter === 'All' || user.role === roleFilter;
         const matchesStatus = statusFilter === 'All' || user.status === statusFilter;
@@ -303,12 +264,20 @@ export const AdminHome: React.FC = () => {
     });
 
     // Filtered Sectors
-    const categories = ['All', ...Array.from(new Set(sectors.map(s => s.category).filter(Boolean))) as string[]];
-    const filteredSectors = sectors.filter(sec => {
-        const matchesCategory = selectedCategory === 'All' || sec.category === selectedCategory;
-        const matchesSearch = sec.name.toLowerCase().includes(sectorSearch.toLowerCase()) ||
-            sec.shortDescription.toLowerCase().includes(sectorSearch.toLowerCase()) ||
-            sec.keywords.some(k => k.toLowerCase().includes(sectorSearch.toLowerCase()));
+    const categories = ['All', ...Array.from(new Set((sectorList || []).map(s => (s && typeof s.category === 'string') ? s.category : '').filter(Boolean)))];
+    const filteredSectors = (sectorList || []).filter(sec => {
+        if (!sec || typeof sec !== 'object') return false;
+        const catStr = typeof sec.category === 'string' ? sec.category : '';
+        const matchesCategory = selectedCategory === 'All' || catStr === selectedCategory;
+
+        const nameStr = typeof sec.name === 'string' ? sec.name : '';
+        const shortDescStr = typeof sec.shortDescription === 'string' ? sec.shortDescription : '';
+        const keywordsArr = Array.isArray(sec.keywords) ? sec.keywords : [];
+
+        const matchesSearch = nameStr.toLowerCase().includes(sectorSearch.toLowerCase()) ||
+            shortDescStr.toLowerCase().includes(sectorSearch.toLowerCase()) ||
+            keywordsArr.some(k => typeof k === 'string' && k.toLowerCase().includes(sectorSearch.toLowerCase()));
+
         return matchesCategory && matchesSearch;
     });
 
@@ -377,7 +346,7 @@ export const AdminHome: React.FC = () => {
                         </div>
                     </div>
                     <div className="flex items-baseline gap-2">
-                        <span className="text-2xl font-bold text-white">{sectors.length}</span>
+                        <span className="text-2xl font-bold text-white">{sectorList.length}</span>
                         <span className="text-xs text-[#38BDF8] font-semibold">Live Guides</span>
                     </div>
                     <p className="text-[11px] text-[#64748B] mt-1">Curated industry design guides</p>
@@ -421,9 +390,7 @@ export const AdminHome: React.FC = () => {
 
             </div>
 
-            {/* ========================================================
-          USER MANAGEMENT SECTION (ADD, UPDATE, DELETE USERS)
-         ======================================================== */}
+            {/* USER MANAGEMENT SECTION */}
             <section id="users-section" className="bg-[#0B1626] border border-[#1E334D] rounded-3xl p-6 shadow-xl space-y-6">
 
                 {/* User Section Header & Controls */}
@@ -446,7 +413,6 @@ export const AdminHome: React.FC = () => {
                     {/* Search + Filter Inputs */}
                     <div className="flex flex-wrap items-center gap-3">
 
-                        {/* Search Input */}
                         <div className="relative min-w-[200px] flex-1 sm:flex-initial">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#64748B]" size={16} />
                             <input
@@ -458,7 +424,6 @@ export const AdminHome: React.FC = () => {
                             />
                         </div>
 
-                        {/* Role Filter */}
                         <select
                             value={roleFilter}
                             onChange={(e) => setRoleFilter(e.target.value)}
@@ -471,7 +436,6 @@ export const AdminHome: React.FC = () => {
                             <option value="Viewer">Viewer</option>
                         </select>
 
-                        {/* Status Filter */}
                         <select
                             value={statusFilter}
                             onChange={(e) => setStatusFilter(e.target.value)}
@@ -483,7 +447,6 @@ export const AdminHome: React.FC = () => {
                             <option value="Pending">Pending</option>
                         </select>
 
-                        {/* Add User Button */}
                         <button
                             onClick={handleOpenAddModal}
                             className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#1683FF] hover:bg-[#0F6EE0] text-white text-xs font-bold shadow-md hover:shadow-[0_0_15px_rgba(22,131,255,0.4)] transition-all cursor-pointer"
@@ -501,7 +464,6 @@ export const AdminHome: React.FC = () => {
                             <tr className="bg-[#101F31]/80 text-[#64748B] text-[11px] font-bold uppercase tracking-wider border-b border-[#1E334D]">
                                 <th className="py-3.5 px-4">User Details</th>
                                 <th className="py-3.5 px-4">Role</th>
-                                <th className="py-3.5 px-4">Assigned Sector</th>
                                 <th className="py-3.5 px-4">Status</th>
                                 <th className="py-3.5 px-4">Joined Date</th>
                                 <th className="py-3.5 px-4 text-right">Actions</th>
@@ -510,7 +472,7 @@ export const AdminHome: React.FC = () => {
                         <tbody className="divide-y divide-[#1E334D]/60 text-xs">
                             {filteredUsers.length === 0 ? (
                                 <tr>
-                                    <td colSpan={6} className="py-12 text-center text-[#64748B]">
+                                    <td colSpan={5} className="py-12 text-center text-[#64748B]">
                                         No users found matching &quot;{userSearch}&quot;
                                     </td>
                                 </tr>
@@ -520,7 +482,6 @@ export const AdminHome: React.FC = () => {
                                         key={user.id}
                                         className="hover:bg-[#0F1E33] transition-colors duration-150 group"
                                     >
-                                        {/* User info: Avatar + Name + Email */}
                                         <td className="py-3.5 px-4">
                                             <div className="flex items-center gap-3">
                                                 <div className={`w-9 h-9 rounded-xl bg-gradient-to-tr ${user.avatarBg} flex items-center justify-center text-white font-bold text-xs shadow-md shrink-0`}>
@@ -538,7 +499,6 @@ export const AdminHome: React.FC = () => {
                                             </div>
                                         </td>
 
-                                        {/* Role Pill */}
                                         <td className="py-3.5 px-4">
                                             <span className={`
                         px-2.5 py-1 rounded-lg text-[11px] font-semibold border inline-flex items-center gap-1
@@ -552,9 +512,6 @@ export const AdminHome: React.FC = () => {
                                             </span>
                                         </td>
 
-
-
-                                        {/* Status Pill */}
                                         <td className="py-3.5 px-4">
                                             <button
                                                 onClick={() => handleToggleUserStatus(user.id)}
@@ -571,12 +528,10 @@ export const AdminHome: React.FC = () => {
                                             </button>
                                         </td>
 
-                                        {/* Joined Date */}
                                         <td className="py-3.5 px-4 text-[#64748B] text-[11px]">
                                             {user.createdAt}
                                         </td>
 
-                                        {/* Action Buttons: Edit, Delete */}
                                         <td className="py-3.5 px-4 text-right">
                                             <div className="flex items-center justify-end gap-1">
                                                 <button
@@ -604,12 +559,9 @@ export const AdminHome: React.FC = () => {
                 </div>
             </section>
 
-            {/* ========================================================
-          SECTOR CARDS SECTION (BELOW USER MANAGEMENT)
-         ======================================================== */}
+            {/* SECTOR CARDS SECTION */}
             <section id="sectors-section" className="bg-[#0B1626] border border-[#1E334D] rounded-3xl p-6 shadow-xl space-y-6">
 
-                {/* Section Title & Filters */}
                 <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-5 border-b border-[#1E334D]">
                     <div>
                         <div className="flex items-center gap-2">
@@ -626,7 +578,6 @@ export const AdminHome: React.FC = () => {
                         </p>
                     </div>
 
-                    {/* Search + Add Sector Button */}
                     <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
                         <div className="relative">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#64748B]" size={16} />
@@ -682,9 +633,7 @@ export const AdminHome: React.FC = () => {
                 )}
             </section>
 
-            {/* ========================================================
-          MODAL 1: ADD USER MODAL
-         ======================================================== */}
+            {/* ADD USER MODAL */}
             {isAddUserOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#07111F]/80 backdrop-blur-sm animate-in fade-in duration-150">
                     <div className="bg-[#0E1A2B] border border-[#20364F] rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-5 animate-in zoom-in-95 duration-150">
@@ -709,7 +658,6 @@ export const AdminHome: React.FC = () => {
 
                         <form onSubmit={handleSaveAddUser} className="space-y-4 text-xs">
 
-                            {/* Full Name */}
                             <div>
                                 <label className="block text-[#94A3B8] font-semibold mb-1">Full Name *</label>
                                 <input
@@ -722,7 +670,6 @@ export const AdminHome: React.FC = () => {
                                 />
                             </div>
 
-                            {/* Email */}
                             <div>
                                 <label className="block text-[#94A3B8] font-semibold mb-1">Mobile No. *</label>
                                 <input
@@ -735,7 +682,6 @@ export const AdminHome: React.FC = () => {
                                 />
                             </div>
 
-                            {/* Email */}
                             <div>
                                 <label className="block text-[#94A3B8] font-semibold mb-1">Email Address *</label>
                                 <input
@@ -748,7 +694,6 @@ export const AdminHome: React.FC = () => {
                                 />
                             </div>
 
-                            {/* Role */}
                             <div className="grid grid-cols-2 gap-3">
                                 <div>
                                     <label className="block text-[#94A3B8] font-semibold mb-1">Role</label>
@@ -764,7 +709,6 @@ export const AdminHome: React.FC = () => {
                                     </select>
                                 </div>
 
-                                {/* Status */}
                                 <div>
                                     <label className="block text-[#94A3B8] font-semibold mb-1">Initial Status</label>
                                     <select
@@ -779,8 +723,6 @@ export const AdminHome: React.FC = () => {
                                 </div>
                             </div>
 
-
-                            {/* Buttons */}
                             <div className="flex items-center justify-end gap-3 pt-3 border-t border-[#1C314A]">
                                 <button
                                     type="button"
@@ -802,36 +744,19 @@ export const AdminHome: React.FC = () => {
                 </div>
             )}
 
-            {/* ========================================================
-          MODAL 2: UPDATE / EDIT USER MODAL
-         ======================================================== */}
+            {/* EDIT USER MODAL */}
             {editingUser && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#07111F]/80 backdrop-blur-sm animate-in fade-in duration-150">
                     <div className="bg-[#0E1A2B] border border-[#20364F] rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-5 animate-in zoom-in-95 duration-150">
-
                         <div className="flex items-center justify-between border-b border-[#1C314A] pb-4">
-                            <div className="flex items-center gap-2.5">
-                                <div className="w-9 h-9 rounded-xl bg-[#1683FF]/15 text-[#38BDF8] flex items-center justify-center font-bold">
-                                    <Edit3 size={18} />
-                                </div>
-                                <div>
-                                    <h3 className="text-base font-bold text-white">Edit User Profile</h3>
-                                    <p className="text-xs text-[#64748B]">Update permissions and account state</p>
-                                </div>
-                            </div>
-                            <button
-                                onClick={() => setEditingUser(null)}
-                                className="p-1.5 text-[#64748B] hover:text-white bg-[#101F31] rounded-xl border border-[#20344A]"
-                            >
+                            <h3 className="text-base font-bold text-white">Edit User: {editingUser.name}</h3>
+                            <button onClick={() => setEditingUser(null)} className="p-1.5 text-[#64748B] hover:text-white bg-[#101F31] rounded-xl border border-[#20344A]">
                                 <X size={18} />
                             </button>
                         </div>
-
                         <form onSubmit={handleSaveEditUser} className="space-y-4 text-xs">
-
-                            {/* Name */}
                             <div>
-                                <label className="block text-[#94A3B8] font-semibold mb-1">Full Name</label>
+                                <label className="block text-[#94A3B8] font-semibold mb-1">Full Name *</label>
                                 <input
                                     type="text"
                                     required
@@ -840,10 +765,8 @@ export const AdminHome: React.FC = () => {
                                     className="w-full bg-[#07111F] text-[#F4F7FB] p-2.5 rounded-xl border border-[#20344A] focus:border-[#1683FF] focus:outline-none"
                                 />
                             </div>
-
-                            {/* Email */}
                             <div>
-                                <label className="block text-[#94A3B8] font-semibold mb-1">Email Address</label>
+                                <label className="block text-[#94A3B8] font-semibold mb-1">Email Address *</label>
                                 <input
                                     type="email"
                                     required
@@ -852,8 +775,6 @@ export const AdminHome: React.FC = () => {
                                     className="w-full bg-[#07111F] text-[#F4F7FB] p-2.5 rounded-xl border border-[#20344A] focus:border-[#1683FF] focus:outline-none"
                                 />
                             </div>
-
-                            {/* Role + Status */}
                             <div className="grid grid-cols-2 gap-3">
                                 <div>
                                     <label className="block text-[#94A3B8] font-semibold mb-1">Role</label>
@@ -868,7 +789,6 @@ export const AdminHome: React.FC = () => {
                                         <option value="Viewer">Viewer</option>
                                     </select>
                                 </div>
-
                                 <div>
                                     <label className="block text-[#94A3B8] font-semibold mb-1">Status</label>
                                     <select
@@ -882,60 +802,36 @@ export const AdminHome: React.FC = () => {
                                     </select>
                                 </div>
                             </div>
-
-
-
-                            {/* Buttons */}
                             <div className="flex items-center justify-end gap-3 pt-3 border-t border-[#1C314A]">
-                                <button
-                                    type="button"
-                                    onClick={() => setEditingUser(null)}
-                                    className="px-4 py-2 text-[#94A3B8] hover:text-white font-semibold rounded-xl bg-[#101F31] border border-[#20344A]"
-                                >
+                                <button type="button" onClick={() => setEditingUser(null)} className="px-4 py-2 text-[#94A3B8] hover:text-white font-semibold rounded-xl bg-[#101F31] border border-[#20344A]">
                                     Cancel
                                 </button>
-                                <button
-                                    type="submit"
-                                    className="px-5 py-2 bg-[#1683FF] hover:bg-[#0F6EE0] text-white font-bold rounded-xl shadow-md transition-all cursor-pointer"
-                                >
-                                    Save Changes
+                                <button type="submit" className="px-5 py-2 bg-[#1683FF] hover:bg-[#0F6EE0] text-white font-bold rounded-xl shadow-md transition-all cursor-pointer">
+                                    Update User
                                 </button>
                             </div>
-
                         </form>
                     </div>
                 </div>
             )}
 
-            {/* ========================================================
-          MODAL 3: DELETE CONFIRMATION MODAL
-         ======================================================== */}
+            {/* DELETE USER CONFIRMATION MODAL */}
             {deletingUser && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#07111F]/80 backdrop-blur-sm animate-in fade-in duration-150">
-                    <div className="bg-[#0E1A2B] border border-[#EF4444]/40 rounded-3xl max-w-sm w-full p-6 shadow-2xl space-y-4 animate-in zoom-in-95 duration-150">
-                        <div className="w-12 h-12 rounded-2xl bg-[#EF4444]/15 text-[#EF4444] flex items-center justify-center mx-auto border border-[#EF4444]/30">
-                            <AlertTriangle size={24} />
+                    <div className="bg-[#0E1A2B] border border-[#20364F] rounded-3xl max-w-sm w-full p-6 shadow-2xl space-y-4 text-center">
+                        <div className="w-12 h-12 rounded-2xl bg-[#EF4444]/15 text-[#EF4444] border border-[#EF4444]/30 flex items-center justify-center mx-auto">
+                            <Trash2 size={24} />
                         </div>
-
-                        <div className="text-center space-y-1">
-                            <h3 className="text-lg font-bold text-white">Delete User Account?</h3>
-                            <p className="text-xs text-[#94A3B8]">
-                                Are you sure you want to remove <span className="text-white font-semibold">&quot;{deletingUser.name}&quot;</span>? This action cannot be undone.
-                            </p>
-                        </div>
-
+                        <h3 className="text-base font-bold text-white">Delete User Account</h3>
+                        <p className="text-xs text-[#94A3B8]">
+                            Are you sure you want to delete <span className="text-white font-semibold">{deletingUser.name}</span>? This action cannot be undone.
+                        </p>
                         <div className="flex items-center justify-center gap-3 pt-2">
-                            <button
-                                onClick={() => setDeletingUser(null)}
-                                className="px-4 py-2 text-xs text-[#94A3B8] hover:text-white font-semibold rounded-xl bg-[#101F31] border border-[#20344A] flex-1"
-                            >
+                            <button onClick={() => setDeletingUser(null)} className="px-4 py-2 text-xs font-semibold text-[#94A3B8] hover:text-white rounded-xl bg-[#101F31] border border-[#20344A]">
                                 Cancel
                             </button>
-                            <button
-                                onClick={handleConfirmDelete}
-                                className="px-4 py-2 text-xs bg-[#EF4444] hover:bg-[#DC2626] text-white font-bold rounded-xl shadow-lg transition-all flex-1 cursor-pointer"
-                            >
-                                Delete Account
+                            <button onClick={handleConfirmDelete} className="px-4 py-2 text-xs font-bold text-white rounded-xl bg-[#EF4444] hover:bg-[#DC2626] shadow-md transition-all">
+                                Confirm Delete
                             </button>
                         </div>
                     </div>
@@ -945,15 +841,3 @@ export const AdminHome: React.FC = () => {
         </div>
     );
 };
-
-// Helper User Plus Icon component
-const UserPlusIcon = ({ size = 18 }: { size?: number }) => (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-        <circle cx="9" cy="7" r="4" />
-        <line x1="19" y1="8" x2="19" y2="14" />
-        <line x1="22" y1="11" x2="16" y2="11" />
-    </svg>
-);
-
-export default AdminHome;

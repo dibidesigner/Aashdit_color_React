@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import {
   Image, Monitor, Tablet, Smartphone,
-  ChevronRight
+  ChevronRight, Loader2
 } from 'lucide-react';
 import { PageContainer } from '../components/layout/PageContainer';
 
@@ -10,8 +10,10 @@ import { Badge } from '../components/common/Badge';
 import { PersonalityMeter } from '../components/sectors/PersonalityMeter';
 import { SectorPalette } from '../components/sectors/SectorPalette';
 import { SectorDosDonts } from '../components/sectors/SectorDosDonts';
-import { sectors } from '../data/sectors';
-import { getSectorById } from '../utils/search';
+import { sectors as staticSectors } from '../data/sectors';
+import { getSectorById as getSectorByIdFromData } from '../utils/search';
+import { getSectorById } from '../Admin/services/Sectors';
+import type { Sector } from '../types/sector';
 import NotFound from './NotFound';
 
 
@@ -30,13 +32,48 @@ export const SectorDetail: React.FC = () => {
   const { sectorId } = useParams<{ sectorId: string }>();
   const [activeTab, setActiveTab] = useState('overview');
   const [previewDevice, setPreviewDevice] = useState<'desktop' | 'tablet' | 'mobile'>('desktop');
+  const [sector, setSector] = useState<Sector | null>(() => getSectorByIdFromData(staticSectors, sectorId || '') || null);
+  const [loading, setLoading] = useState<boolean>(true);
 
-  const sector = getSectorById(sectors, sectorId || '');
+  useEffect(() => {
+    if (!sectorId) return;
+    const fetchSectorDetail = async () => {
+      try {
+        setLoading(true);
+        const data = await getSectorById(sectorId);
+        const singleSector: Sector = (data as any)?.sector || (data as any)?.data || data;
+        if (singleSector && singleSector.id) {
+          setSector(singleSector);
+        }
+      } catch (err) {
+        console.error(`Error fetching sector detail for ${sectorId}:`, err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchSectorDetail();
+  }, [sectorId]);
+
+  if (loading && !sector) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="animate-spin text-[#1683FF]" size={36} />
+      </div>
+    );
+  }
 
   if (!sector) return <NotFound />;
 
-  const colors = sector.colors;
-  const primaryHex = colors.primary;
+  const colors = sector.colors || {
+    primary: '#1683FF',
+    secondary: '#12B8C4',
+    accent: '#8B5CF6',
+    background: '#07111F',
+    surface: '#0B1626',
+    text: '#F4F7FB'
+  };
+  const primaryHex = colors.primary || '#1683FF';
 
   return (
     <div className="min-h-screen">
@@ -65,7 +102,7 @@ export const SectorDetail: React.FC = () => {
                   className="w-16 h-16 rounded-2xl flex items-center justify-center text-3xl border"
                   style={{ borderColor: `${primaryHex}40`, backgroundColor: `${primaryHex}15` }}
                 >
-                  {sector.icon}
+                  {sector.icon || '🏛️'}
                 </div>
                 <div>
                   <h1 className="text-[#F4F7FB] text-3xl font-bold mb-1">{sector.name}</h1>
@@ -76,11 +113,11 @@ export const SectorDetail: React.FC = () => {
               </div>
 
               <p className="text-[#94A3B8] text-sm leading-relaxed max-w-lg mb-4">
-                {sector.description}
+                {sector.description || sector.shortDescription}
               </p>
 
               <div className="flex flex-wrap gap-2">
-                {sector.character.map(tag => (
+                {(sector.character || []).map(tag => (
                   <Badge key={tag} variant="default" size="sm">{tag}</Badge>
                 ))}
               </div>
@@ -162,7 +199,7 @@ export const SectorDetail: React.FC = () => {
               <div className="bg-[#101F31] border border-[#20344A] rounded-xl p-6">
                 <h2 className="text-[#F4F7FB] font-semibold text-lg mb-4">Sector Character</h2>
                 <div className="flex flex-wrap gap-2 mb-6">
-                  {sector.character.map(c => (
+                  {(sector.character || []).map(c => (
                     <div
                       key={c}
                       className="flex items-center gap-2 px-3 py-2 rounded-lg border"
@@ -175,13 +212,13 @@ export const SectorDetail: React.FC = () => {
                     </div>
                   ))}
                 </div>
-                <p className="text-[#64748B] text-sm leading-relaxed">{sector.description}</p>
+                <p className="text-[#64748B] text-sm leading-relaxed">{sector.description || sector.shortDescription}</p>
               </div>
 
               {/* Personality */}
               <div className="bg-[#101F31] border border-[#20344A] rounded-xl p-6">
                 <h2 className="text-[#F4F7FB] font-semibold text-lg mb-4">Personality Profile</h2>
-                <PersonalityMeter personality={sector.personality} />
+                <PersonalityMeter personality={sector.personality || {}} />
               </div>
 
               {/* Quick color preview */}
@@ -226,7 +263,7 @@ export const SectorDetail: React.FC = () => {
                   <div>
                     <p className="text-[#10B981] text-xs font-semibold mb-2 uppercase tracking-wider">✓ Recommended</p>
                     <ul className="space-y-1">
-                      {sector.imagery.recommended.map(r => (
+                      {(sector.imagery?.recommended || []).map(r => (
                         <li key={r} className="text-[#94A3B8] text-sm flex items-center gap-2">
                           <span className="w-1.5 h-1.5 rounded-full bg-[#10B981] shrink-0" />
                           {r}
@@ -237,7 +274,7 @@ export const SectorDetail: React.FC = () => {
                   <div>
                     <p className="text-[#EF4444] text-xs font-semibold mb-2 uppercase tracking-wider">✗ Avoid</p>
                     <ul className="space-y-1">
-                      {sector.imagery.avoid.map(r => (
+                      {(sector.imagery?.avoid || []).map(r => (
                         <li key={r} className="text-[#94A3B8] text-sm flex items-center gap-2">
                           <span className="w-1.5 h-1.5 rounded-full bg-[#EF4444] shrink-0" />
                           {r}
@@ -260,7 +297,7 @@ export const SectorDetail: React.FC = () => {
           {/* LAYOUT TAB */}
           {activeTab === 'layout' && (
             <div className="animate-fade-in grid grid-cols-1 md:grid-cols-2 gap-6">
-              {Object.entries(sector.layout).map(([key, value]) => {
+              {Object.entries(sector.layout || {}).map(([key, value]) => {
                 if (!value || key === 'notes') return null;
                 const labels: Record<string, string> = {
                   style: 'Layout Style', density: 'Density', grid: 'Grid System',
@@ -274,7 +311,7 @@ export const SectorDetail: React.FC = () => {
                   </div>
                 );
               })}
-              {sector.layout.notes && (
+              {sector.layout?.notes && (
                 <div className="md:col-span-2 bg-[rgba(22,131,255,0.05)] border border-[rgba(22,131,255,0.2)] rounded-xl p-5">
                   <p className="text-[#94A3B8] text-sm">{sector.layout.notes}</p>
                 </div>
@@ -287,9 +324,9 @@ export const SectorDetail: React.FC = () => {
             <div className="animate-fade-in space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {[
-                  { label: 'Heading Font', value: sector.typography.heading },
-                  { label: 'Body Font', value: sector.typography.body },
-                  { label: 'Weights', value: sector.typography.weights?.join(', ') || 'Regular, Medium, SemiBold, Bold' },
+                  { label: 'Heading Font', value: sector.typography?.heading || 'Inter' },
+                  { label: 'Body Font', value: sector.typography?.body || 'Inter' },
+                  { label: 'Weights', value: sector.typography?.weights?.join(', ') || 'Regular, Medium, SemiBold, Bold' },
                 ].map(({ label, value }) => (
                   <div key={label} className="bg-[#101F31] border border-[#20344A] rounded-xl p-5">
                     <p className="text-[#64748B] text-xs font-medium uppercase tracking-wider mb-2">{label}</p>
@@ -313,7 +350,7 @@ export const SectorDetail: React.FC = () => {
                       <span className="text-[#64748B] text-xs w-16 shrink-0">{label}</span>
                       <span
                         className="text-[#F4F7FB] leading-none"
-                        style={{ fontSize: size, fontWeight: weight, fontFamily: sector.typography.heading }}
+                        style={{ fontSize: size, fontWeight: weight, fontFamily: sector.typography?.heading || 'sans-serif' }}
                       >
                         {sector.name}
                       </span>
@@ -321,7 +358,7 @@ export const SectorDetail: React.FC = () => {
                   ))}
                 </div>
               </div>
-              {sector.typography.notes && (
+              {sector.typography?.notes && (
                 <div className="bg-[rgba(22,131,255,0.05)] border border-[rgba(22,131,255,0.2)] rounded-xl p-4">
                   <p className="text-[#94A3B8] text-sm">{sector.typography.notes}</p>
                 </div>
@@ -334,12 +371,12 @@ export const SectorDetail: React.FC = () => {
             <div className="animate-fade-in">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
                 {[
-                  { label: 'Card Radius', value: sector.shapes.cardRadius, demo: 'card' },
-                  { label: 'Button Radius', value: sector.shapes.buttonRadius, demo: 'button' },
-                  { label: 'Input Radius', value: sector.shapes.inputRadius, demo: 'input' },
-                  { label: 'Modal Radius', value: sector.shapes.modalRadius || 'N/A', demo: 'modal' },
-                  { label: 'Border Style', value: sector.shapes.borderStyle, demo: 'border' },
-                  { label: 'Shadow Style', value: sector.shapes.shadowStyle, demo: 'shadow' },
+                  { label: 'Card Radius', value: sector.shapes?.cardRadius || '16px', demo: 'card' },
+                  { label: 'Button Radius', value: sector.shapes?.buttonRadius || '12px', demo: 'button' },
+                  { label: 'Input Radius', value: sector.shapes?.inputRadius || '12px', demo: 'input' },
+                  { label: 'Modal Radius', value: sector.shapes?.modalRadius || 'N/A', demo: 'modal' },
+                  { label: 'Border Style', value: sector.shapes?.borderStyle || '1px solid #20344A', demo: 'border' },
+                  { label: 'Shadow Style', value: sector.shapes?.shadowStyle || '0 4px 12px rgba(0,0,0,0.3)', demo: 'shadow' },
                 ].map(({ label, value, demo }) => (
                   <div key={label} className="bg-[#101F31] border border-[#20344A] rounded-xl p-5">
                     <p className="text-[#64748B] text-xs font-medium uppercase tracking-wider mb-3">{label}</p>
@@ -377,7 +414,7 @@ export const SectorDetail: React.FC = () => {
           {/* COMPONENTS TAB */}
           {activeTab === 'components' && (
             <div className="animate-fade-in grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {sector.components.map((comp, i) => (
+              {(sector.components || []).map((comp, i) => (
                 <div key={i} className="bg-[#101F31] border border-[#20344A] rounded-xl p-5">
                   <h3 className="text-[#F4F7FB] font-semibold text-sm mb-2">{comp.name}</h3>
                   <p className="text-[#64748B] text-sm leading-relaxed">{comp.notes}</p>
@@ -420,7 +457,7 @@ export const SectorDetail: React.FC = () => {
 
               {/* Sample UI display */}
               <div className="space-y-8">
-                {sector.sampleUI.map((ui, i) => (
+                {(sector.sampleUI || []).map((ui, i) => (
                   <div key={ui.id} className="bg-[#101F31] border border-[#20344A] rounded-2xl overflow-hidden">
                     {/* Sample UI header */}
                     <div className="flex items-center justify-between px-5 py-3 border-b border-[#20344A]">
@@ -461,11 +498,11 @@ export const SectorDetail: React.FC = () => {
             <div className="animate-fade-in space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {[
-                  { label: 'Minimum Contrast', value: sector.accessibility.minContrast, icon: '👁️' },
-                  { label: 'Keyboard Navigation', value: sector.accessibility.keyboardNav, icon: '⌨️' },
-                  { label: 'Screen Reader', value: sector.accessibility.screenReader, icon: '🔊' },
-                  { label: 'Color Blindness', value: sector.accessibility.colorBlindness, icon: '🎨' },
-                  { label: 'Focus State', value: sector.accessibility.focusState, icon: '🎯' },
+                  { label: 'Minimum Contrast', value: sector.accessibility?.minContrast || '4.5:1', icon: '👁️' },
+                  { label: 'Keyboard Navigation', value: sector.accessibility?.keyboardNav || 'Full support', icon: '⌨️' },
+                  { label: 'Screen Reader', value: sector.accessibility?.screenReader || 'Full support', icon: '🔊' },
+                  { label: 'Color Blindness', value: sector.accessibility?.colorBlindness || 'Safe colors', icon: '🎨' },
+                  { label: 'Focus State', value: sector.accessibility?.focusState || 'Visible outline', icon: '🎯' },
                 ].map(({ label, value, icon }) => (
                   <div key={label} className="bg-[#101F31] border border-[#20344A] rounded-xl p-5">
                     <div className="flex items-center gap-2 mb-2">
@@ -476,14 +513,14 @@ export const SectorDetail: React.FC = () => {
                   </div>
                 ))}
               </div>
-              {sector.accessibility.notes && (
+              {sector.accessibility?.notes && (
                 <div className="bg-[rgba(22,131,255,0.05)] border border-[rgba(22,131,255,0.2)] rounded-xl p-5">
                   <p className="text-[#94A3B8] text-sm leading-relaxed">{sector.accessibility.notes}</p>
                 </div>
               )}
 
               {/* Do's and Don'ts */}
-              <SectorDosDonts dosDonts={sector.dosDonts} />
+              {sector.dosDonts && <SectorDosDonts dosDonts={sector.dosDonts} />}
             </div>
           )}
         </PageContainer>
@@ -493,9 +530,16 @@ export const SectorDetail: React.FC = () => {
 };
 
 // Generic sample preview component
-const SectorSamplePreview: React.FC<{ sector: ReturnType<typeof getSectorById> & {}; uiType: string }> = ({ sector, uiType }) => {
+const SectorSamplePreview: React.FC<{ sector: Sector; uiType: string }> = ({ sector, uiType }) => {
   if (!sector) return null;
-  const colors = sector.colors;
+  const colors = sector.colors || {
+    primary: '#1683FF',
+    secondary: '#12B8C4',
+    accent: '#8B5CF6',
+    background: '#07111F',
+    surface: '#0B1626',
+    text: '#F4F7FB'
+  };
 
   if (uiType === 'dashboard') {
     return (
@@ -573,11 +617,11 @@ const SectorSamplePreview: React.FC<{ sector: ReturnType<typeof getSectorById> &
 
       {/* Service cards */}
       <div style={{ padding: '0 24px 24px', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
-        {sector.components.slice(0, 3).map(comp => (
+        {(sector.components || []).slice(0, 3).map(comp => (
           <div key={comp.name} style={{ backgroundColor: colors.surface, borderRadius: '8px', padding: '12px', border: `1px solid ${colors.primary}15` }}>
             <div style={{ width: '28px', height: '28px', backgroundColor: colors.primary + '20', borderRadius: '8px', marginBottom: '8px' }} />
             <div style={{ color: colors.text, fontSize: '11px', fontWeight: 600, marginBottom: '4px' }}>{comp.name}</div>
-            <div style={{ color: colors.text + '60', fontSize: '10px' }}>{comp.notes.slice(0, 50)}...</div>
+            <div style={{ color: colors.text + '60', fontSize: '10px' }}>{(comp.notes || '').slice(0, 50)}...</div>
           </div>
         ))}
       </div>
